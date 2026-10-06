@@ -8,6 +8,9 @@ Next.js (App Router, TS estrito), Tailwind, shadcn/ui, Drizzle ORM + Neon (Postg
 ## Modelo
 Workspace (tenant, 1:1 com organização do Clerk) -> Organização (empresa própria ou cliente) -> Projeto -> Tarefa. Tags são do workspace. Papéis por workspace: admin | member (membro vê só as próprias horas).
 
+## Design
+Tokens, componentes e convenções estão em `design-system.md`; a referência viva fica em `/design` (oculta em produção). Usar apenas tokens (`bg-background`, `text-muted-foreground`...), nunca hex; vermelho só para cronômetro em andamento, ações destrutivas e alertas; horas sempre em `tabular-nums`.
+
 ## Regras
 - Toda query operacional filtra por `workspace_id`; nunca confiar em IDs do cliente sem checar o tenant.
 - Instantes em UTC (timestamptz); fuso IANA no usuário e no registro. Duração nunca é armazenada: derivar de `ended_at - started_at` (ver `src/lib/time.ts`).
