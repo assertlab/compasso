@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Compasso
 
-## Getting Started
+Registro de horas simples, robusto e sem paywall. Aplicação web (PWA) para consultores, freelancers e equipes que precisam registrar o tempo por organização, projeto e tarefa e exportar relatórios mensais em XLSX, CSV e PDF sem restrições.
 
-First, run the development server:
+> Projeto do [ASSERT Lab](https://assertlab.com) (CIn/UFPE). Status: MVP em construção.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Modelo
+
+```
+Workspace (tenant, 1:1 com organização do Clerk)
+  └─ Organização (empresa própria ou cliente)
+       └─ Projeto
+            └─ Tarefa
+Tags são do workspace. Papéis por workspace: admin | membro.
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+O membro vê só as próprias horas; o admin vê as de todos.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Next.js (App Router, TypeScript estrito) · Tailwind CSS · Drizzle ORM + Neon (PostgreSQL) · Clerk (autenticação e organizações) · Zod · Vitest · IBM Plex (fontes self-hosted).
 
-## Learn More
+## Começando
 
-To learn more about Next.js, take a look at the following resources:
+Requisitos: Node 22+ e um projeto no [Neon](https://neon.com).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm install
+cp .env.example .env.local   # preencha DATABASE_URL
+npm run db:migrate           # aplica as migrações no Neon
+npm run dev                  # http://localhost:3000
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scripts
 
-## Deploy on Vercel
+| Comando | O que faz |
+| :-- | :-- |
+| `npm run dev` / `build` / `start` | Servidor de desenvolvimento, build e produção |
+| `npm run lint` / `typecheck` | ESLint e verificação de tipos |
+| `npm test` / `test:watch` | Testes com Vitest |
+| `npm run db:generate` | Gera uma nova migração a partir de `src/db/schema.ts` |
+| `npm run db:migrate` | Aplica as migrações |
+| `npm run db:studio` | Abre o Drizzle Studio |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Estrutura
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/app/        rotas, layout, manifest da PWA, ícones
+src/db/         schema Drizzle e cliente Neon
+src/lib/        regras de negócio puras (tempo, duração) e seus testes
+src/env.ts      validação das variáveis de ambiente
+drizzle/        migrações versionadas
+brand/          logos de origem
+public/icons/   ícones da PWA
+```
+
+## Princípios
+
+- Toda consulta operacional filtra por `workspace_id` (isolamento entre tenants).
+- Instantes em UTC; o fuso IANA fica no usuário e em cada registro.
+- A duração nunca é armazenada: deriva de `ended_at - started_at`.
+- Um único cronômetro ativo por usuário (garantido por índice único parcial).
+- Exportações escrevem números reais, nunca texto.
+
+## Licença
+
+Ver [LICENSE](./LICENSE).
