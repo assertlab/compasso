@@ -1,0 +1,20 @@
+# Compasso
+
+Aplicação web (PWA) de registro de horas. Documentos de produto, escopo e decisões (ADRs) ficam no Projeto "Compasso" no claude.ai: `escopo-mvp-v1.md` e `plano-implementacao.md`.
+
+## Stack
+Next.js (App Router, TS estrito), Tailwind, shadcn/ui, Drizzle ORM + Neon (PostgreSQL), Clerk, Zod, Vitest. Ler `AGENTS.md` e a documentação em `node_modules/next/dist/docs/` antes de usar APIs do Next.js.
+
+## Modelo
+Workspace (tenant, 1:1 com organização do Clerk) -> Organização (empresa própria ou cliente) -> Projeto -> Tarefa. Tags são do workspace. Papéis por workspace: admin | member (membro vê só as próprias horas).
+
+## Regras
+- Toda query operacional filtra por `workspace_id`; nunca confiar em IDs do cliente sem checar o tenant.
+- Instantes em UTC (timestamptz); fuso IANA no usuário e no registro. Duração nunca é armazenada: derivar de `ended_at - started_at` (ver `src/lib/time.ts`).
+- Um único timer ativo por usuário (índice único parcial).
+- Valores monetários em Decimal (fora do MVP). Exportações escrevem números reais, nunca texto.
+- Código em inglês, UI em português do Brasil. Validar entradas com Zod. Testes para regras de negócio.
+- Migrações versionadas (`npm run db:generate`); explicar o impacto antes de alterar o schema.
+
+## Comandos
+`npm run dev | build | lint | typecheck | test | db:generate | db:migrate | db:studio`
