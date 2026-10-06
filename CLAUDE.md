@@ -8,6 +8,9 @@ Next.js (App Router, TS estrito), Tailwind, shadcn/ui, Drizzle ORM + Neon (Postg
 ## Modelo
 Workspace (tenant, 1:1 com organização do Clerk) -> Organização (empresa própria ou cliente) -> Projeto -> Tarefa. Tags são do workspace. Papéis por workspace: admin | member (membro vê só as próprias horas).
 
+## Design
+Tokens, componentes e convenções estão em `design-system.md`; a referência viva fica em `/design` (oculta em produção). Usar apenas tokens (`bg-background`, `text-muted-foreground`...), nunca hex; vermelho só para cronômetro em andamento, ações destrutivas e alertas; horas sempre em `tabular-nums`.
+
 ## Regras
 - Toda query operacional filtra por `workspace_id`; nunca confiar em IDs do cliente sem checar o tenant.
 - Instantes em UTC (timestamptz); fuso IANA no usuário e no registro. Duração nunca é armazenada: derivar de `ended_at - started_at` (ver `src/lib/time.ts`).
@@ -18,3 +21,10 @@ Workspace (tenant, 1:1 com organização do Clerk) -> Organização (empresa pr�
 
 ## Comandos
 `npm run dev | build | lint | typecheck | test | db:generate | db:migrate | db:studio`
+
+## Fluxo de trabalho (gitflow)
+- `main` = produção (só recebe `release/*` e `hotfix/*`); `develop` = integração.
+- Trabalho novo: `feature/<nome>` a partir de `develop`, sempre via PR para `develop`. Nunca commitar direto em `main` ou `develop`.
+- Release: `release/x.y.z` a partir de `develop` → PR para `main` + tag + merge de volta em `develop`. Correção urgente: `hotfix/*` a partir de `main`.
+- Commits em Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `test:`).
+- Antes de abrir o PR: `npm run typecheck && npm test && npm run build`; depois revisão (code-review → simplify → security-review).
