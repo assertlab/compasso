@@ -1,12 +1,10 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 
-// Everything is private except the auth pages and the design reference
-// (which returns 404 in production on its own).
-const isPublicRoute = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)", "/design(.*)"]);
-
-export default clerkMiddleware(async (auth, request) => {
-  if (!isPublicRoute(request)) await auth.protect();
-});
+// The proxy only makes the Clerk session available to `auth()`. It does NOT
+// decide who may see what: path matching can diverge from how Next routes a
+// request, so every protected page, route handler and Server Action checks
+// access itself via `requireWorkspaceContext()` (src/server/workspace-context.ts).
+export default clerkMiddleware();
 
 export const config = {
   matcher: [

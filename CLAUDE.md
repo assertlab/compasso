@@ -13,6 +13,7 @@ Tokens, componentes e convenções estão em `design-system.md`; a referência v
 
 ## Regras
 - Toda query operacional filtra por `workspace_id`; nunca confiar em IDs do cliente sem checar o tenant.
+- Autorização por recurso, não por caminho: toda página, route handler e Server Action protegido chama `requireWorkspaceContext()` (o `proxy.ts` só expõe a sessão do Clerk, não bloqueia rotas).
 - Instantes em UTC (timestamptz); fuso IANA no usuário e no registro. Duração nunca é armazenada: derivar de `ended_at - started_at` (ver `src/lib/time.ts`).
 - Um único timer ativo por usuário (índice único parcial).
 - Valores monetários em Decimal (fora do MVP). Exportações escrevem números reais, nunca texto.
