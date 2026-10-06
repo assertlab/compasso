@@ -5,6 +5,13 @@ import { getDb } from "@/db";
 import { users, workspaceMembers, workspaces } from "@/db/schema";
 import { roleFromClerk, type WorkspaceRole } from "@/lib/roles";
 import { slugify } from "@/lib/slug";
+import { isStale } from "@/lib/stale";
+
+/**
+ * Stopgap until Clerk webhooks exist: profile/organization changes made in
+ * Clerk (name, avatar, org name, role) are pulled in at most this often.
+ */
+const RESYNC_AFTER_MS = 10 * 60_000;
 
 /** Who is acting, in which workspace, and with which role. Every query must be scoped by `workspaceId`. */
 export type WorkspaceContext = {
@@ -32,11 +39,16 @@ export async function requireWorkspaceContext(): Promise<WorkspaceContext> {
 
   const role = roleFromClerk(orgRole);
   const existing = await findContext(clerkUserId, clerkOrgId);
-  if (existing && existing.role === role) return existing;
+  if (existing && existing.role === role && !isStale(existing.syncedAt, new Date(), RESYNC_AFTER_MS)) {
+    return existing.context;
+  }
   return provision(clerkUserId, clerkOrgId, role);
 }
 
-async function findContext(clerkUserId: string, clerkOrgId: string): Promise<WorkspaceContext | null> {
+async function findContext(
+  clerkUserId: string,
+  clerkOrgId: string,
+): Promise<{ context: WorkspaceContext; role: WorkspaceRole; syncedAt: Date } | null> {
   const [row] = await getDb()
     .select({
       userId: users.id,
@@ -45,13 +57,16 @@ async function findContext(clerkUserId: string, clerkOrgId: string): Promise<Wor
       workspaceId: workspaces.id,
       workspaceName: workspaces.name,
       role: workspaceMembers.role,
+      syncedAt: users.updatedAt,
     })
     .from(users)
     .innerJoin(workspaceMembers, eq(workspaceMembers.userId, users.id))
     .innerJoin(workspaces, eq(workspaces.id, workspaceMembers.workspaceId))
     .where(and(eq(users.clerkId, clerkUserId), eq(workspaces.clerkOrgId, clerkOrgId)))
     .limit(1);
-  return row ?? null;
+  if (!row) return null;
+  const { role, syncedAt, ...context } = row;
+  return { context: { ...context, role }, role, syncedAt };
 }
 
 async function provision(
