@@ -1,5 +1,6 @@
 import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
+import { Suspense } from "react";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -11,13 +12,18 @@ export function AppHeader() {
           <Logo />
         </Link>
         <div className="flex items-center gap-2">
-          <OrganizationSwitcher
-            hidePersonal
-            afterSelectOrganizationUrl="/"
-            afterCreateOrganizationUrl="/"
-          />
+          {/* Clerk's widgets read the pathname on the client: keep them behind Suspense (Next 16 cacheComponents). */}
+          <Suspense fallback={<div className="h-9 w-40 animate-pulse rounded-md bg-muted" aria-hidden />}>
+            <OrganizationSwitcher
+              hidePersonal
+              afterSelectOrganizationUrl="/"
+              afterCreateOrganizationUrl="/"
+            />
+          </Suspense>
           <ThemeToggle />
-          <UserButton />
+          <Suspense fallback={<div className="size-8 animate-pulse rounded-full bg-muted" aria-hidden />}>
+            <UserButton />
+          </Suspense>
         </div>
       </div>
     </header>
