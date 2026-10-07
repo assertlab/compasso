@@ -1,6 +1,7 @@
 "use client";
 
 import { Pencil, Plus } from "lucide-react";
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { saveEntry } from "./actions";
@@ -11,13 +12,38 @@ import type { CatalogView, EntryView } from "./types";
 
 const fieldError = (message?: string) => (message ? <p className="text-sm text-destructive">{message}</p> : null);
 
-/** Manual entry (no `entry`) or edit of an existing one. Times are in the user's time zone. */
-export function EntryDialog({ catalog, entry, today }: { catalog: CatalogView; entry?: EntryView; today: string }) {
+export type EntryPrefill = { date: string; start: string; end: string };
+
+/**
+ * Manual entry (no `entry`) or edit of an existing one. Times are in the user's time zone.
+ * `trigger` replaces the default button; with `open`/`onOpenChange` the parent controls it (calendar drag).
+ */
+export function EntryDialog({
+  catalog,
+  entry,
+  today,
+  trigger,
+  open,
+  onOpenChange,
+  prefill,
+}: {
+  catalog: CatalogView;
+  entry?: EntryView;
+  today: string;
+  trigger?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  prefill?: EntryPrefill;
+}) {
   const running = entry !== undefined && entry.endedAt === null;
   return (
     <EntityDialog
+      open={open}
+      onOpenChange={onOpenChange}
       trigger={
-        entry ? (
+        trigger !== undefined ? (
+          trigger
+        ) : open !== undefined ? undefined : entry ? (
           <Button variant="ghost" size="icon" aria-label="Editar registro">
             <Pencil aria-hidden />
           </Button>
@@ -43,12 +69,12 @@ export function EntryDialog({ catalog, entry, today }: { catalog: CatalogView; e
           <div className="grid grid-cols-3 gap-3">
             <div className="grid gap-1.5">
               <Label htmlFor="date">Data</Label>
-              <input id="date" name="date" type="date" required defaultValue={entry?.date ?? today} className="h-9 rounded-md border border-input bg-background px-2 text-sm" />
+              <input id="date" name="date" type="date" required defaultValue={entry?.date ?? prefill?.date ?? today} className="h-9 rounded-md border border-input bg-background px-2 text-sm" />
               {fieldError(errors.date)}
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="start">Início</Label>
-              <input id="start" name="start" type="time" required defaultValue={entry?.startTime} className="h-9 rounded-md border border-input bg-background px-2 text-sm" />
+              <input id="start" name="start" type="time" required defaultValue={entry?.startTime ?? prefill?.start} className="h-9 rounded-md border border-input bg-background px-2 text-sm" />
               {fieldError(errors.start)}
             </div>
             <div className="grid gap-1.5">
@@ -59,7 +85,7 @@ export function EntryDialog({ catalog, entry, today }: { catalog: CatalogView; e
                 type="time"
                 required={!running}
                 disabled={running}
-                defaultValue={entry?.endTime ?? undefined}
+                defaultValue={entry?.endTime ?? prefill?.end}
                 className="h-9 rounded-md border border-input bg-background px-2 text-sm disabled:opacity-50"
               />
               {running ? <p className="text-xs text-muted-foreground">Em andamento</p> : fieldError(errors.end)}

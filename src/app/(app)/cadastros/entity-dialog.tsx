@@ -120,6 +120,8 @@ function DialogForm({
 /** A trigger button that opens a form dialog backed by a Server Action. Closes itself on success. */
 export function EntityDialog({
   trigger,
+  open: controlledOpen,
+  onOpenChange,
   title,
   description,
   action,
@@ -127,7 +129,10 @@ export function EntityDialog({
   submitLabel = "Salvar",
   children,
 }: {
-  trigger: ReactNode;
+  /** Omit when the dialog is opened from elsewhere (controlled with `open`/`onOpenChange`). */
+  trigger?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   title: string;
   description?: string;
   action: FormAction;
@@ -135,10 +140,15 @@ export function EntityDialog({
   submitLabel?: string;
   children: (errors: Record<string, string>) => ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = (next: boolean) => {
+    setInternalOpen(next);
+    onOpenChange?.(next);
+  };
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent {...(description ? {} : { "aria-describedby": undefined })}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>

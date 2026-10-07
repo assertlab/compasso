@@ -13,9 +13,17 @@ export function AppHeader() {
           <Logo />
         </Link>
         <nav aria-label="Principal" className="order-last w-full sm:order-none sm:ml-4 sm:w-auto sm:flex-1">
-          <Link href="/cadastros" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-            Cadastros
-          </Link>
+          <div className="flex items-center gap-4 text-sm font-medium text-muted-foreground">
+            <Link href="/" className="transition-colors hover:text-foreground">
+              Registros
+            </Link>
+            <Link href="/calendario" className="transition-colors hover:text-foreground">
+              Calendário
+            </Link>
+            <Link href="/cadastros" className="transition-colors hover:text-foreground">
+              Cadastros
+            </Link>
+          </div>
         </nav>
         <div className="ml-auto flex min-w-0 items-center gap-2">
           {/* Clerk's widgets read the pathname on the client: keep them behind Suspense (Next 16 cacheComponents). */}
