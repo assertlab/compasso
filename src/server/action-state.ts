@@ -1,6 +1,6 @@
 import { ZodError } from "zod";
 import { isUniqueViolation } from "./db-errors";
-import { ForbiddenError, NotFoundError } from "./errors";
+import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from "./errors";
 
 /** What a Server Action returns to its form (useActionState). Only serializable data. */
 export type ActionState = {
@@ -21,6 +21,8 @@ export function toActionState(error: unknown): ActionState {
     }
     return { ok: false, fieldErrors };
   }
+  if (error instanceof ValidationError) return { ok: false, fieldErrors: error.fieldErrors };
+  if (error instanceof ConflictError) return { ok: false, message: error.message };
   if (error instanceof ForbiddenError) return { ok: false, message: "Apenas administradores podem alterar os cadastros." };
   if (error instanceof NotFoundError) return { ok: false, message: "Item não encontrado. Atualize a página e tente de novo." };
   if (isUniqueViolation(error)) {

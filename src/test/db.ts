@@ -26,3 +26,13 @@ export async function seedWorkspace(db: TestDb, label: string) {
   await db.insert(workspaceMembers).values({ workspaceId: workspace.id, userId: user.id, role: "admin" });
   return { workspaceId: workspace.id, userId: user.id };
 }
+
+/** Adds another user to an existing workspace, as the Clerk sync would have. */
+export async function addMember(db: TestDb, workspaceId: string, label: string, role: "admin" | "member" = "member") {
+  const [user] = await db
+    .insert(users)
+    .values({ clerkId: `user_${label}`, email: `${label}@example.com`, name: `User ${label}` })
+    .returning();
+  await db.insert(workspaceMembers).values({ workspaceId, userId: user.id, role });
+  return { workspaceId, userId: user.id };
+}

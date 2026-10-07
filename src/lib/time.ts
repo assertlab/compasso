@@ -30,3 +30,56 @@ export function formatHms(totalSeconds: number): string {
 export function toDecimalHours(totalSeconds: number): number {
   return Math.round(totalSeconds / 36) / 100;
 }
+
+/** Offset (ms) of `timeZone` from UTC at the given instant: local wall clock minus UTC. */
+function zoneOffsetMs(instant: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+  }).formatToParts(instant);
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  const asUtc = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
+  return asUtc - Math.floor(instant.getTime() / 1000) * 1000;
+}
+
+const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+function parseLocalDate(date: string): [number, number, number] {
+  const m = DATE_RE.exec(date);
+  if (!m) throw new RangeError(`Invalid date "${date}", expected YYYY-MM-DD`);
+  return [Number(m[1]), Number(m[2]), Number(m[3])];
+}
+
+/** The UTC instant at which the local calendar day `date` ("YYYY-MM-DD") starts in `timeZone` (DST-safe). */
+export function zonedMidnightUtc(date: string, timeZone: string): Date {
+  const [y, m, d] = parseLocalDate(date);
+  const wall = Date.UTC(y, m - 1, d);
+  // Two passes: the offset at the first guess may differ from the offset at the real instant around DST changes.
+  const first = wall - zoneOffsetMs(new Date(wall), timeZone);
+  return new Date(wall - zoneOffsetMs(new Date(first), timeZone));
+}
+
+/** Half-open UTC range [from, to) covering the local calendar day `date` in `timeZone` (23, 24 or 25 hours long). */
+export function zonedDayRange(date: string, timeZone: string): { from: Date; to: Date } {
+  const [y, m, d] = parseLocalDate(date);
+  const next = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+  return { from: zonedMidnightUtc(date, timeZone), to: zonedMidnightUtc(next, timeZone) };
+}
+
+/** The local calendar date ("YYYY-MM-DD") of an instant in `timeZone`. */
+export function localDateString(instant: Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(instant);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value;
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}

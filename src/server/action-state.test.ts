@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { toActionState } from "./action-state";
 import { isUniqueViolation } from "./db-errors";
-import { ForbiddenError, NotFoundError } from "./errors";
+import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from "./errors";
 
 describe("isUniqueViolation", () => {
   it("detects the Postgres code, also when wrapped in a cause chain", () => {
@@ -15,6 +15,14 @@ describe("isUniqueViolation", () => {
 });
 
 describe("toActionState", () => {
+  it("passes business-rule errors through to the form", () => {
+    expect(toActionState(new ValidationError({ endedAt: "Fim inválido" }))).toEqual({
+      ok: false,
+      fieldErrors: { endedAt: "Fim inválido" },
+    });
+    expect(toActionState(new ConflictError("Já há um timer rodando")).message).toBe("Já há um timer rodando");
+  });
+
   it("maps Zod issues to the first message per field", () => {
     const result = z.object({ name: z.string().min(1, "Informe um nome") }).safeParse({ name: "" });
     expect(result.success).toBe(false);
