@@ -1,11 +1,11 @@
 import { Suspense } from "react";
 import { weekStart } from "@/lib/entry-groups";
-import { addDays, entryDurationSeconds, localDateString, localTimeString, zonedDayRange, zonedMidnightUtc } from "@/lib/time";
+import { addDays, localDateString, zonedDayRange, zonedMidnightUtc } from "@/lib/time";
 import { getTenant } from "@/server/get-tenant";
 import { EntryDialog } from "./entry-dialog";
 import { EntryList } from "./entry-list";
 import { TimerBar } from "./timer-bar";
-import type { CatalogView, EntryView } from "./types";
+import { loadCatalog, toEntryView } from "./views";
 
 const DEFAULT_WEEKS = 2;
 const MAX_WEEKS = 26;
@@ -36,36 +36,12 @@ async function Today({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
     to: zonedDayRange(today, tz).to,
   };
 
-  const [organizations, projects, tasks, tags, running, entries] = await Promise.all([
-    tenant.organizations.list({ includeArchived: true }),
-    tenant.projects.list({ includeArchived: true }),
-    tenant.tasks.listAll(),
-    tenant.tags.list(),
+  const [catalog, running, entries] = await Promise.all([
+    loadCatalog(tenant),
     tenant.timeEntries.runningTimer(),
     tenant.timeEntries.list(range),
   ]);
-
-  const catalog: CatalogView = {
-    organizations: organizations.map((o) => ({ id: o.id, name: o.name })),
-    projects: projects.map((p) => ({ id: p.id, name: p.name, color: p.color, organizationId: p.organizationId, isArchived: p.isArchived })),
-    tasks: tasks.map((t) => ({ id: t.id, projectId: t.projectId, name: t.name, isCompleted: t.isCompleted })),
-    tags: tags.map((t) => ({ id: t.id, name: t.name, color: t.color })),
-  };
-
-  const views: EntryView[] = entries.map((e) => ({
-    id: e.id,
-    description: e.description,
-    projectId: e.projectId,
-    taskId: e.taskId,
-    tagIds: e.tagIds,
-    isBillable: e.isBillable,
-    startedAt: e.startedAt.toISOString(),
-    endedAt: e.endedAt?.toISOString() ?? null,
-    date: localDateString(e.startedAt, tz),
-    startTime: localTimeString(e.startedAt, tz),
-    endTime: e.endedAt ? localTimeString(e.endedAt, tz) : null,
-    durationSeconds: e.endedAt ? entryDurationSeconds(e.startedAt, e.endedAt) : null,
-  }));
+  const views = entries.map((e) => toEntryView(e, tz));
 
   const current = running.here;
   const currentProject = current ? catalog.projects.find((p) => p.id === current.projectId) : undefined;
