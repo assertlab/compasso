@@ -127,43 +127,57 @@ export function createTimeEntries(db: TenantDb, ctx: TenantContext, deps: Deps) 
     return row;
   }
 
+  /** Starts a timer now. A timer already running here is stopped first; one running in another workspace blocks. */
+  async function startTimer(input: z.input<typeof startTimerInput> = {}): Promise<TimeEntry> {
+    const data = startTimerInput.parse(input);
+    const projectId = data.projectId ?? null;
+    const taskId = data.taskId ?? null;
+    await assertRefs(projectId, taskId);
+    const tagIds = await assertTags(data.tagIds);
+
+    const running = await runningTimer();
+    if (running.elsewhere) {
+      throw new ConflictError(`Já existe um timer rodando em "${running.elsewhere.workspaceName}". Pare-o antes de iniciar outro.`);
+    }
+    if (running.here) await stopEntry(running.here);
+
+    try {
+      const [row] = await db
+        .insert(timeEntries)
+        .values({
+          workspaceId: ws,
+          userId: ctx.userId,
+          projectId,
+          taskId,
+          description: data.description,
+          isBillable: data.isBillable,
+          startedAt: deps.now(),
+          timezone: ctx.timezone,
+        })
+        .returning();
+      await setTags(row.id, tagIds);
+      return { ...row, tagIds };
+    } catch (error) {
+      if (isUniqueViolation(error)) throw new ConflictError("Já existe um timer rodando. Atualize a página.");
+      throw error;
+    }
+  }
+
   return {
     runningTimer,
 
-    /** Starts a timer now. A timer already running here is stopped first; one running in another workspace blocks. */
-    async startTimer(input: z.input<typeof startTimerInput> = {}): Promise<TimeEntry> {
-      const data = startTimerInput.parse(input);
-      const projectId = data.projectId ?? null;
-      const taskId = data.taskId ?? null;
-      await assertRefs(projectId, taskId);
-      const tagIds = await assertTags(data.tagIds);
+    startTimer,
 
-      const running = await runningTimer();
-      if (running.elsewhere) {
-        throw new ConflictError(`Já existe um timer rodando em "${running.elsewhere.workspaceName}". Pare-o antes de iniciar outro.`);
-      }
-      if (running.here) await stopEntry(running.here);
-
-      try {
-        const [row] = await db
-          .insert(timeEntries)
-          .values({
-            workspaceId: ws,
-            userId: ctx.userId,
-            projectId,
-            taskId,
-            description: data.description,
-            isBillable: data.isBillable,
-            startedAt: deps.now(),
-            timezone: ctx.timezone,
-          })
-          .returning();
-        await setTags(row.id, tagIds);
-        return { ...row, tagIds };
-      } catch (error) {
-        if (isUniqueViolation(error)) throw new ConflictError("Já existe um timer rodando. Atualize a página.");
-        throw error;
-      }
+    /** "Play" on an existing entry: starts a new timer with the same description, project, task, tags and billing flag. */
+    async startFrom(id: string): Promise<TimeEntry> {
+      const [source] = await withTags([await getOwn(id)]);
+      return startTimer({
+        description: source.description,
+        projectId: source.projectId,
+        taskId: source.taskId,
+        tagIds: source.tagIds,
+        isBillable: source.isBillable,
+      });
     },
 
     async stopTimer(): Promise<TimeEntry> {

@@ -42,6 +42,10 @@ export async function startTimerAction(formData: FormData): Promise<ActionState>
   );
 }
 
+export async function resumeEntryAction(id: string): Promise<ActionState> {
+  return mutate((t) => t.timeEntries.startFrom(id));
+}
+
 export async function stopTimerAction(): Promise<ActionState> {
   return mutate((t) => t.timeEntries.stopTimer());
 }

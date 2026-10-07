@@ -1,11 +1,11 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { Play, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatHms } from "@/lib/time";
-import { deleteEntryAction, restoreEntryAction } from "./actions";
+import { deleteEntryAction, restoreEntryAction, resumeEntryAction } from "./actions";
 import { EntryDialog } from "./entry-dialog";
 import type { CatalogView, EntryView } from "./types";
 
@@ -27,6 +27,14 @@ export function EntryList({ entries, catalog, today }: { entries: EntryView[]; c
       const result = await deleteEntryAction(entry.id);
       if (result.ok) setRemoved({ id: entry.id, label: entry.description || "Registro sem descrição" });
       else setError(result.message ?? "Não foi possível remover.");
+    });
+  }
+
+  function resume(entry: EntryView) {
+    startTransition(async () => {
+      setError(null);
+      const result = await resumeEntryAction(entry.id);
+      if (!result.ok) setError(result.message ?? Object.values(result.fieldErrors ?? {})[0] ?? "Não foi possível iniciar.");
     });
   }
 
@@ -61,6 +69,13 @@ export function EntryList({ entries, catalog, today }: { entries: EntryView[]; c
         <ul className="divide-y rounded-lg border bg-card">
           {entries.map((entry) => (
             <li key={entry.id} className="flex items-center gap-2 p-3">
+              {entry.endedAt !== null ? (
+                <Button variant="outline" size="icon" aria-label="Iniciar novamente" title="Iniciar novamente" disabled={pending} onClick={() => resume(entry)}>
+                  <Play aria-hidden />
+                </Button>
+              ) : (
+                <span className="size-9 shrink-0" aria-hidden />
+              )}
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">{entry.description || "Sem descrição"}</p>
                 <p className="truncate text-sm text-muted-foreground">{projectName(entry.projectId)}</p>
