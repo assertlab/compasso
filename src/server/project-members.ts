@@ -1,9 +1,12 @@
 import { and, asc, eq, inArray, isNull, notInArray, type SQL, sql } from "drizzle-orm";
-import { projectMembers, users, workspaceMembers } from "@/db/schema";
+import { organizations, projectMembers, projects, users, workspaceMembers } from "@/db/schema";
 import { displayName } from "@/lib/display-name";
 import { ForbiddenError, NotFoundError } from "./errors";
 import type { TenantContext, TenantDb } from "./tenant";
 
+export type MemberOverview = Participant & {
+  projects: { id: string; name: string; color: string; clientName: string; isArchived: boolean }[];
+};
 export type Participant = { userId: string; name: string; email: string; role: "admin" | "member" };
 
 /**
@@ -73,6 +76,32 @@ export function createProjectMembers(db: TenantDb, ctx: TenantContext, deps: { g
       requireAdmin();
       await deps.getProject(projectId);
       return (await activeMembers(notInArray(users.id, participantIds(projectId)))).map(toParticipant);
+    },
+
+    /** Every active member with the projects they take part in (admins see all projects regardless, so theirs is informational). */
+    async overview(): Promise<MemberOverview[]> {
+      requireAdmin();
+      const [members, links] = await Promise.all([
+        activeMembers(),
+        db
+          .select({
+            userId: projectMembers.userId,
+            id: projects.id,
+            name: projects.name,
+            color: projects.color,
+            isArchived: projects.isArchived,
+            clientName: organizations.name,
+          })
+          .from(projectMembers)
+          .innerJoin(projects, eq(projects.id, projectMembers.projectId))
+          .innerJoin(organizations, eq(organizations.id, projects.organizationId))
+          .where(and(eq(projectMembers.workspaceId, ws), eq(projects.workspaceId, ws)))
+          .orderBy(asc(organizations.name), asc(projects.name)),
+      ]);
+      return members.map((m) => ({
+        ...toParticipant(m),
+        projects: links.filter((l) => l.userId === m.userId).map((l) => ({ id: l.id, name: l.name, color: l.color, clientName: l.clientName, isArchived: l.isArchived })),
+      }));
     },
 
     async add(projectId: string, userId: string): Promise<void> {

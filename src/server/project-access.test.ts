@@ -174,4 +174,28 @@ describe("project participation (access model)", () => {
     }
     expect(rows).toHaveLength(projects.length * 3);
   });
+
+  describe("members overview", () => {
+    it("lists active members with their projects, and leaves out removed ones", async () => {
+      const overview = await tAdmin.projectMembers.overview();
+      const ids = overview.map((m) => m.userId);
+      expect(ids).toContain(ana.userId);
+      expect(ids).not.toContain(gone.userId);
+      // Earlier tests (the backfill one) change who is in which project, so use a project created here.
+      const org = await tAdmin.organizations.create({ name: "Cliente overview" });
+      const solo = await tAdmin.projects.create({ organizationId: org.id, name: "So admin" });
+      await tAdmin.projectMembers.add(solo.id, bia.userId);
+      const after = await tAdmin.projectMembers.overview();
+      const names = (userId: string) => after.find((m) => m.userId === userId)?.projects.map((p) => p.name) ?? [];
+      expect(names(bia.userId)).toContain("So admin");
+      expect(names(ana.userId)).not.toContain("So admin");
+      expect(after.find((m) => m.userId === bia.userId)?.projects.find((p) => p.name === "So admin")?.clientName).toBe("Cliente overview");
+    });
+
+    it("is admin-only and never shows another workspace's people", async () => {
+      await expect(tAna.projectMembers.overview()).rejects.toBeInstanceOf(ForbiddenError);
+      const foreign = await tOther.projectMembers.overview();
+      expect(foreign.map((m) => m.userId)).not.toContain(ana.userId);
+    });
+  });
 });

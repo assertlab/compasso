@@ -1,13 +1,20 @@
 export const TABS = [
-  { key: "clientes", label: "Clientes" },
-  { key: "projetos", label: "Projetos" },
-  { key: "tags", label: "Tags" },
+  { key: "clientes", label: "Clientes", adminOnly: false },
+  { key: "projetos", label: "Projetos", adminOnly: false },
+  { key: "tags", label: "Tags", adminOnly: false },
+  { key: "membros", label: "Membros", adminOnly: true },
 ] as const;
 
 export type TabKey = (typeof TABS)[number]["key"];
 
-/** Reads the `aba` query parameter; anything unknown falls back to the first tab. */
-export function parseTab(value: string | string[] | undefined): TabKey {
+/** Tabs the caller may open: "Membros" is for admins only. */
+export function tabsFor(isAdmin: boolean) {
+  return TABS.filter((tab) => isAdmin || !tab.adminOnly);
+}
+
+/** Reads the `aba` query parameter; anything unknown (or not visible to the caller) falls back to the first tab. */
+export function parseTab(value: string | string[] | undefined, isAdmin = false): TabKey {
   const raw = Array.isArray(value) ? value[0] : value;
-  return TABS.find((tab) => tab.key === raw)?.key ?? TABS[0].key;
+  const tabs = tabsFor(isAdmin);
+  return tabs.find((tab) => tab.key === raw)?.key ?? tabs[0].key;
 }
