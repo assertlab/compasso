@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -35,7 +36,9 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
   const period: ResolvedPeriod = "error" in resolved ? (resolvePeriod("mes", today, tz) as ResolvedPeriod) : resolved;
 
   const isAdmin = ctx.role === "admin";
-  const [catalog, people, result] = await Promise.all([
+  // A client filter leaves out entries without a project; count them so the gap is visible.
+  const clientFilterOnly = Boolean(query.cliente) && !query.projeto && !query.tarefa;
+  const [catalog, people, result, unassigned] = await Promise.all([
     loadCatalog(tenant),
     isAdmin ? tenant.reports.people() : Promise.resolve(null),
     tenant.reports.run({
@@ -46,7 +49,17 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
       taskId: query.tarefa,
       userIds: isAdmin ? query.pessoas : undefined,
     }),
+    clientFilterOnly
+      ? tenant.reports.run({ from: period.from, to: period.to, projectId: "none", userIds: isAdmin ? query.pessoas : undefined })
+      : Promise.resolve(null),
   ]);
+  const unassignedHref = (() => {
+    const params = new URLSearchParams({ periodo: query.periodo, projeto: "none" });
+    if (query.de) params.set("de", query.de);
+    if (query.ate) params.set("ate", query.ate);
+    for (const id of query.pessoas) params.append("pessoas", id);
+    return `/relatorios?${params}`;
+  })();
   const summary = summarize(result.rows);
   const showPerson = isAdmin;
 
@@ -71,6 +84,16 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
       {result.runningCount > 0 && (
         <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
           {result.runningCount === 1 ? "Há 1 timer em andamento" : `Há ${result.runningCount} timers em andamento`} neste período. Ele só entra no relatório depois de parado.
+        </p>
+      )}
+
+      {unassigned && unassigned.rows.length > 0 && (
+        <p className="rounded-md border bg-muted/50 p-3 text-sm">
+          {unassigned.rows.length === 1 ? "1 registro sem projeto" : `${unassigned.rows.length} registros sem projeto`} neste período não entra
+          {unassigned.rows.length === 1 ? "" : "m"} no filtro de cliente.{" "}
+          <Link href={unassignedHref} className="underline">
+            Ver registros sem projeto
+          </Link>
         </p>
       )}
 
