@@ -87,19 +87,19 @@ export async function saveEntry(_prev: ActionState, formData: FormData): Promise
   });
 }
 
-const dragInput = z.object({ id: z.uuid(), shiftMinutes: z.number().int().min(-60 * 24 * 7).max(60 * 24 * 7) });
+const dragInput = z.object({ id: z.uuid(), shiftMinutes: z.number().min(-60 * 24 * 7).max(60 * 24 * 7) });
 const resizeInput = z.object({
   id: z.uuid(),
   edge: z.enum(["start", "end"]),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  minute: z.number().int().min(0).max(1440),
+  minute: z.number().min(0).max(1440),
 });
 
 /** Calendar drag: shift a finished entry by a number of minutes (negative = earlier). */
 export async function moveEntryAction(input: z.input<typeof dragInput>): Promise<ActionState> {
   return mutate(async (t) => {
     const { id, shiftMinutes } = dragInput.parse(input);
-    return t.timeEntries.move(id, shiftMinutes);
+    return t.timeEntries.move(id, Math.round(shiftMinutes));
   });
 }
 
@@ -107,7 +107,7 @@ export async function moveEntryAction(input: z.input<typeof dragInput>): Promise
 export async function resizeEntryAction(input: z.input<typeof resizeInput>): Promise<ActionState> {
   return mutate(async (t, timezone) => {
     const { id, edge, date, minute } = resizeInput.parse(input);
-    const at = new Date(zonedMidnightUtc(date, timezone).getTime() + minute * 60_000);
+    const at = new Date(zonedMidnightUtc(date, timezone).getTime() + Math.round(minute) * 60_000);
     return t.timeEntries.resize(id, edge, at);
   });
 }

@@ -52,6 +52,9 @@ export function WeekGrid({ days, catalog, today }: { days: GridDay[]; catalog: C
   const [draft, setDraft] = useState<EntryPrefill | null>(null);
   const [blockDrag, setBlockDrag] = useState<BlockDrag | null>(null);
   const [dragError, setDragError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
+  // The empty-space drag lives in a ref too: handlers must not depend on a stale render's closure.
+  const createRef = useRef<{ date: string; anchor: number; current: number } | null>(null);
   const [, startTransition] = useTransition();
   const body = useRef<HTMLDivElement>(null);
   const suppressClick = useRef(false);
@@ -89,7 +92,8 @@ export function WeekGrid({ days, catalog, today }: { days: GridDay[]; catalog: C
     const drag = blockDrag;
     if (!drag) return;
     if (!drag.moved) {
-      setBlockDrag(null); // a plain click: let the button open the editor
+      setBlockDrag(null);
+      if (drag.mode === "move") setEditing(block.entry.id); // a plain click opens the editor
       return;
     }
     suppressClick.current = true;
@@ -107,7 +111,7 @@ export function WeekGrid({ days, catalog, today }: { days: GridDay[]; catalog: C
               id: block.entry.id,
               edge: drag.mode,
               date,
-              minute: drag.mode === "start" ? top : top + height,
+              minute: snapMinutes(drag.mode === "start" ? top : top + height),
             });
       if (!result.ok) setDragError(result.message ?? Object.values(result.fieldErrors ?? {})[0] ?? "Não foi possível ajustar o registro.");
       setBlockDrag(null);
@@ -122,6 +126,8 @@ export function WeekGrid({ days, catalog, today }: { days: GridDay[]; catalog: C
     end = Math.min(end, 1440);
     setDraft({ date, start: minutesToTime(start), end: minutesToTime(end) });
   }
+
+  const editingEntry = editing ? days.flatMap((d) => d.blocks).find((b) => b.entry.id === editing)?.entry : undefined;
 
   return (
     <div className="hidden rounded-lg border bg-card sm:block" style={{ overflow: "hidden" }}>
@@ -174,18 +180,26 @@ export function WeekGrid({ days, catalog, today }: { days: GridDay[]; catalog: C
                 if (e.target !== e.currentTarget || e.button !== 0) return;
                 e.currentTarget.setPointerCapture(e.pointerId);
                 const m = snapMinutes(minuteAt(e));
-                setDrag({ date: day.date, anchor: m, current: m });
+                createRef.current = { date: day.date, anchor: m, current: m };
+                setDrag(createRef.current);
               }}
               onPointerMove={(e) => {
-                if (drag?.date === day.date) setDrag({ ...drag, current: snapMinutes(minuteAt(e)) });
+                const d = createRef.current;
+                if (!d || d.date !== day.date) return;
+                createRef.current = { ...d, current: snapMinutes(minuteAt(e)) };
+                setDrag(createRef.current);
               }}
               onPointerUp={(e) => {
-                if (drag?.date !== day.date) return;
-                const end = snapMinutes(minuteAt(e));
+                const d = createRef.current;
+                if (!d || d.date !== day.date) return;
+                createRef.current = null;
                 setDrag(null);
-                finishDrag(day.date, drag.anchor, end);
+                finishDrag(day.date, d.anchor, snapMinutes(minuteAt(e)));
               }}
-              onPointerCancel={() => setDrag(null)}
+              onPointerCancel={() => {
+                createRef.current = null;
+                setDrag(null);
+              }}
             >
               {drag?.date === day.date && (
                 <div
@@ -239,13 +253,9 @@ export function WeekGrid({ days, catalog, today }: { days: GridDay[]; catalog: C
                       }
                     }}
                   >
-                    <EntryDialog
-                      catalog={catalog}
-                      entry={e}
-                      today={today}
-                      trigger={
                         <button
                           type="button"
+                          onClick={() => setEditing(e.id)}
                           className="bg-secondary text-xs hover:bg-accent"
                           style={{
                             display: "flex",
@@ -274,8 +284,6 @@ export function WeekGrid({ days, catalog, today }: { days: GridDay[]; catalog: C
                             </span>
                           )}
                         </button>
-                      }
-                    />
                     {!running && !block.continuesBefore && (
                       <div
                         aria-hidden
@@ -297,6 +305,18 @@ export function WeekGrid({ days, catalog, today }: { days: GridDay[]; catalog: C
           ))}
         </div>
       </div>
+
+      {editingEntry && (
+        <EntryDialog
+          catalog={catalog}
+          today={today}
+          entry={editingEntry}
+          open
+          onOpenChange={(open) => {
+            if (!open) setEditing(null);
+          }}
+        />
+      )}
 
       {draft && (
         <EntryDialog
