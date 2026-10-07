@@ -99,7 +99,9 @@ async function provision(
 
   // neon-http has no interactive transactions: three idempotent upserts, in dependency order.
   const user = await upsertUser(userData);
-  const workspace = await upsertWorkspace(workspaceFromClerk(org));
+  if (!user) throw new Error("User was deleted");
+  // Clerk just confirmed the organization exists, so this is the one place that may un-archive it.
+  const workspace = await upsertWorkspace(workspaceFromClerk(org), { unarchive: true });
   await upsertMembership(workspace.id, user.id, role);
 
   return {

@@ -46,12 +46,12 @@ export function workspaceFromClerk(org: ClerkOrgPayload): WorkspaceData {
 
 /**
  * LGPD anonymization for a deleted Clerk user. Keeps the row (and so all
- * time entries) but drops every personal field. The unique columns get
- * deterministic placeholders derived from our own row id.
+ * time entries) but drops every personal field. `clerk_id` is kept on purpose:
+ * it is an opaque identifier, and keeping it makes the row a tombstone, so a
+ * late or retried Clerk event for the deleted user cannot recreate the person.
  */
 export function anonymizedUser(rowId: string) {
   return {
-    clerkId: `deleted:${rowId}`,
     email: `deleted-${rowId}@anonymized.invalid`,
     name: null,
     avatarUrl: null,

@@ -51,13 +51,12 @@ describe("workspaceFromClerk", () => {
 });
 
 describe("anonymizedUser", () => {
-  it("strips personal fields and keeps unique columns unique per row", () => {
+  it("strips personal fields and keeps the unique email unique per row", () => {
     const a = anonymizedUser("11111111");
     const b = anonymizedUser("22222222");
     expect(a.name).toBeNull();
     expect(a.avatarUrl).toBeNull();
     expect(a.email).toBe("deleted-11111111@anonymized.invalid");
-    expect(a.clerkId).not.toBe(b.clerkId);
     expect(a.email).not.toBe(b.email);
   });
 });

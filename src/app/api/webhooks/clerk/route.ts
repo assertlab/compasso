@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         const { organization, public_user_data: member, role } = event.data;
         const workspace = await upsertWorkspace(workspaceFromClerk(organization));
         const user = await ensureUser(member.user_id);
-        await upsertMembership(workspace.id, user.id, roleFromClerk(role));
+        if (user) await upsertMembership(workspace.id, user.id, roleFromClerk(role));
         break;
       }
       case "organizationMembership.deleted": {

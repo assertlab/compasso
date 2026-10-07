@@ -12,27 +12,41 @@ import type { WorkspaceRole } from "@/lib/roles";
  * transactions, so every function is a single statement or a safe sequence.
  */
 
+/**
+ * Returns the user row, or null when the user was already deleted: an
+ * anonymized row is a tombstone and is never refreshed or resurrected by late
+ * events.
+ */
 export async function upsertUser(data: UserData) {
-  const now = new Date();
-  const [row] = await getDb()
+  const db = getDb();
+  const [row] = await db
     .insert(users)
     .values(data)
     .onConflictDoUpdate({
       target: users.clerkId,
-      set: { email: data.email, name: data.name, avatarUrl: data.avatarUrl, updatedAt: now },
+      set: { email: data.email, name: data.name, avatarUrl: data.avatarUrl, updatedAt: new Date() },
+      setWhere: isNull(users.deletedAt),
     })
     .returning();
-  return row;
+  if (row) return row;
+  const [tombstone] = await db.select().from(users).where(eq(users.clerkId, data.clerkId));
+  return tombstone.deletedAt ? null : tombstone;
 }
 
-export async function upsertWorkspace(data: WorkspaceData) {
+/**
+ * `unarchive` is only for callers that just confirmed with Clerk that the
+ * organization exists (lazy provisioning). Webhook events can arrive late, so
+ * they must never un-archive a workspace.
+ */
+export async function upsertWorkspace(data: WorkspaceData, { unarchive = false } = {}) {
+  const now = new Date();
   const [row] = await getDb()
     .insert(workspaces)
     .values(data)
-    // Slug is set once on insert and never changes. Clerk still has the org, so it is not archived.
+    // Slug is set once on insert and never changes.
     .onConflictDoUpdate({
       target: workspaces.clerkOrgId,
-      set: { name: data.name, archivedAt: null, updatedAt: new Date() },
+      set: { name: data.name, updatedAt: now, ...(unarchive ? { archivedAt: null } : {}) },
     })
     .returning();
   return row;
@@ -95,12 +109,13 @@ export async function archiveWorkspace(clerkOrgId: string) {
 
 /**
  * Webhook events can arrive out of order (a membership event before its
- * user.created), so a missing user is fetched from the Clerk API.
+ * user.created), so a missing user is fetched from the Clerk API. Returns null
+ * for a deleted (anonymized) user.
  */
 export async function ensureUser(clerkUserId: string) {
   const db = getDb();
   const [existing] = await db.select().from(users).where(eq(users.clerkId, clerkUserId));
-  if (existing) return existing;
+  if (existing) return existing.deletedAt ? null : existing;
   const clerkUser = await (await clerkClient()).users.getUser(clerkUserId);
   const data = userFromClerk({
     id: clerkUser.id,
