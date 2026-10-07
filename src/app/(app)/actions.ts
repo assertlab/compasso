@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { addDays, zonedMidnightUtc, zonedTimeToUtc } from "@/lib/time";
+import { impliedEndDate } from "@/lib/entry-dates";
+import { zonedMidnightUtc, zonedTimeToUtc } from "@/lib/time";
 import { type ActionState, toActionState } from "@/server/action-state";
 import { ValidationError } from "@/server/errors";
 import { getTenant } from "@/server/get-tenant";
@@ -58,10 +59,12 @@ export async function saveEntry(_prev: ActionState, formData: FormData): Promise
     const date = str(formData, "date");
     const start = str(formData, "start");
     const end = str(formData, "end");
+    const endDate = str(formData, "endDate");
     const errors: Record<string, string> = {};
     if (!date) errors.date = "Informe a data";
     if (!start) errors.start = "Informe o início";
     if (!end && !id) errors.end = "Informe o fim";
+    if (end && endDate && !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) errors.endDate = "Data inválida";
     if (Object.keys(errors).length) throw new ValidationError(errors);
 
     const toUtc = (d: string, time: string, field: string) => {
@@ -72,7 +75,7 @@ export async function saveEntry(_prev: ActionState, formData: FormData): Promise
       }
     };
     const startedAt = toUtc(date, start, "start");
-    const endedAt = end ? toUtc(end <= start ? addDays(date, 1) : date, end, "end") : undefined;
+    const endedAt = end ? toUtc(endDate || impliedEndDate(date, start, end), end, "end") : undefined;
 
     const data = {
       description: str(formData, "description"),

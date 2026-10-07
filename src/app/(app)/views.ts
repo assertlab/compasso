@@ -32,6 +32,7 @@ export function toEntryView(e: TimeEntry, timezone: string): EntryView {
     date: localDateString(e.startedAt, timezone),
     startTime: localTimeString(e.startedAt, timezone),
     endTime: e.endedAt ? localTimeString(e.endedAt, timezone) : null,
+    endDate: e.endedAt ? localDateString(e.endedAt, timezone) : null,
     durationSeconds: e.endedAt ? entryDurationSeconds(e.startedAt, e.endedAt) : null,
   };
 }

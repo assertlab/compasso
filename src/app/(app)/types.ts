@@ -21,6 +21,8 @@ export type EntryView = {
   date: string;
   startTime: string;
   endTime: string | null;
+  /** Local day the entry ended; differs from `date` when it crosses midnight. Null while running. */
+  endDate: string | null;
   /** Whole seconds for finished entries; null while running. */
   durationSeconds: number | null;
 };
