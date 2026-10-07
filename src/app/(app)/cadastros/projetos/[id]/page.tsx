@@ -7,9 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { NotFoundError } from "@/server/errors";
 import { getTenant } from "@/server/get-tenant";
 import type { Tenant } from "@/server/tenant";
-import { setTaskCompleted } from "../../actions";
+import { removeProjectParticipant, setTaskCompleted } from "../../actions";
 import { ActionButton } from "../../entity-dialog";
 import { TaskDialog } from "../../entity-dialogs";
+import { AddParticipant } from "./add-participant";
 
 export const metadata: Metadata = { title: "Projeto" };
 
@@ -21,11 +22,17 @@ export default function ProjectPage({ params }: PageProps<"/cadastros/projetos/[
   );
 }
 
-async function load(tenant: Tenant, id: string) {
+async function load(tenant: Tenant, id: string, isAdmin: boolean) {
   try {
     const project = await tenant.projects.get(id);
     const [organization, tasks] = await Promise.all([tenant.organizations.get(project.organizationId), tenant.tasks.list(id)]);
-    return { project, organization, tasks };
+    // Participation matters to members (tasks are hidden from non-participants) and is managed by admins.
+    const [participates, participants, candidates] = await Promise.all([
+      tenant.projectMembers.canUse(id),
+      isAdmin ? tenant.projectMembers.list(id) : Promise.resolve(null),
+      isAdmin ? tenant.projectMembers.candidates(id) : Promise.resolve(null),
+    ]);
+    return { project, organization, tasks, participates, participants, candidates };
   } catch (error) {
     // Unknown id or an id from another workspace: same answer.
     if (error instanceof NotFoundError) notFound();
@@ -40,7 +47,7 @@ async function Project({ params }: Pick<PageProps<"/cadastros/projetos/[id]">, "
   const { ctx, tenant } = await getTenant();
   const canEdit = ctx.role === "admin";
 
-  const { project, organization, tasks } = await load(tenant, id);
+  const { project, organization, tasks, participates, participants, candidates } = await load(tenant, id, canEdit);
 
   return (
     <section className="flex flex-col gap-4">
@@ -63,7 +70,11 @@ async function Project({ params }: Pick<PageProps<"/cadastros/projetos/[id]">, "
 
       {tasks.length === 0 ? (
         <p className="rounded-lg border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
-          {canEdit ? "Nenhuma tarefa ainda. Crie a primeira para registrar horas nela." : "Nenhuma tarefa ainda. Peça a um administrador para criar."}
+          {canEdit
+            ? "Nenhuma tarefa ainda. Crie a primeira para registrar horas nela."
+            : participates
+              ? "Nenhuma tarefa ainda. Peça a um administrador para criar."
+              : "Você não participa deste projeto. As tarefas aparecem só para quem participa; peça a um administrador para incluir você."}
         </p>
       ) : (
         <ul className="divide-y rounded-lg border">
@@ -84,6 +95,32 @@ async function Project({ params }: Pick<PageProps<"/cadastros/projetos/[id]">, "
             </li>
           ))}
         </ul>
+      )}
+
+      {participants && candidates && (
+        <>
+          <div className="mt-4 flex flex-col gap-1">
+            <h2 className="text-lg font-semibold">Participantes</h2>
+            <p className="text-sm text-muted-foreground">
+              Membros só lançam horas nos projetos de que participam. Administradores podem lançar em qualquer projeto.
+            </p>
+          </div>
+          <ul className="divide-y rounded-lg border">
+            {participants.map((p) => (
+              <li key={p.userId} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+                <p className="min-w-0 flex-1 truncate font-medium">
+                  {p.name}
+                  {p.role === "admin" && <span className="ml-2 text-xs font-normal text-muted-foreground">admin</span>}
+                </p>
+                <ActionButton action={removeProjectParticipant} fields={{ projectId: project.id, userId: p.userId }}>
+                  Remover
+                </ActionButton>
+              </li>
+            ))}
+            {participants.length === 0 && <li className="px-4 py-6 text-center text-sm text-muted-foreground">Nenhum participante ainda.</li>}
+          </ul>
+          <AddParticipant projectId={project.id} candidates={candidates} />
+        </>
       )}
     </section>
   );

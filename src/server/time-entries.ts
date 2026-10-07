@@ -16,6 +16,8 @@ type Deps = {
   now: () => Date;
   getProject: (id: string) => Promise<Project>;
   getTask: (id: string) => Promise<Task>;
+  /** Whether the caller may put new work on this project (members: only projects they take part in; admins: any). */
+  canUseProject: (id: string) => Promise<boolean>;
 };
 
 export type RunningTimer = {
@@ -77,6 +79,7 @@ export function createTimeEntries(db: TenantDb, ctx: TenantContext, deps: Deps) 
   ) {
     if (projectId && projectId !== current.projectId) {
       const project = await deps.getProject(projectId);
+      if (!(await deps.canUseProject(projectId))) throw new ValidationError({ projectId: "Você não participa deste projeto." });
       if (project.isArchived) throw new ValidationError({ projectId: "Este projeto está arquivado." });
     }
     if (taskId) {

@@ -5,6 +5,8 @@ export type CatalogView = {
   projects: { id: string; name: string; color: string; organizationId: string; isArchived: boolean }[];
   tasks: { id: string; projectId: string; name: string; isCompleted: boolean }[];
   tags: { id: string; name: string; color: string }[];
+  /** Projects the caller may put new work on; null = unrestricted (admins). Members still *see* every project name. */
+  allowedProjectIds: string[] | null;
 };
 
 export type EntryView = {

@@ -60,3 +60,11 @@ export async function saveTag(_prev: ActionState, formData: FormData): Promise<A
   const data = { name: text(formData, "name"), color: text(formData, "color") || undefined };
   return mutate((t) => (id ? t.tags.update(id, data) : t.tags.create(data)));
 }
+
+export async function addProjectParticipant(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  return mutate((t) => t.projectMembers.add(text(formData, "projectId"), text(formData, "userId")));
+}
+
+export async function removeProjectParticipant(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  return mutate((t) => t.projectMembers.remove(text(formData, "projectId"), text(formData, "userId")));
+}

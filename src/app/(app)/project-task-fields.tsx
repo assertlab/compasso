@@ -27,7 +27,8 @@ export function ProjectTaskFields({
   const [projectId, setProjectId] = useState(defaultProjectId ?? "");
   const [taskId, setTaskId] = useState(defaultTaskId ?? "");
 
-  const projects = catalog.projects.filter((p) => !p.isArchived || p.id === defaultProjectId);
+  const allowed = (id: string) => catalog.allowedProjectIds === null || catalog.allowedProjectIds.includes(id) || id === defaultProjectId;
+  const projects = catalog.projects.filter((p) => (!p.isArchived || p.id === defaultProjectId) && allowed(p.id));
   const tasks = catalog.tasks.filter((t) => t.projectId === projectId && (!t.isCompleted || t.id === defaultTaskId));
 
   return (
