@@ -102,6 +102,42 @@ describe("time entries", () => {
       await expect(tAinB.timeEntries.stopTimer()).rejects.toBeInstanceOf(NotFoundError);
     });
 
+    it("starts again from an entry, copying project, task, tags and billing, and stops the running one", async () => {
+      const source = await tA.timeEntries.createManual({
+        startedAt: "2026-02-27T09:00:00Z",
+        endedAt: "2026-02-27T10:00:00Z",
+        description: "revisão",
+        projectId: projA.id,
+        taskId: taskA.id,
+        tagIds: [tagA.id],
+        isBillable: false,
+      });
+      const other = await tA.timeEntries.startTimer({ description: "outra coisa" });
+      setNow("2026-02-27T12:30:00Z");
+      const again = await tA.timeEntries.startFrom(source.id);
+      expect(again).toMatchObject({
+        id: expect.not.stringMatching(source.id),
+        description: "revisão",
+        projectId: projA.id,
+        taskId: taskA.id,
+        tagIds: [tagA.id],
+        isBillable: false,
+        startedAt: clock,
+        endedAt: null,
+      });
+      const stopped = (await tA.timeEntries.list({ from: iso("2026-02-27T00:00:00Z"), to: iso("2026-02-28T00:00:00Z") })).find((e) => e.id === other.id);
+      expect(stopped?.endedAt).toEqual(clock);
+    });
+
+    it("cannot start from someone else's entry, or into an archived project", async () => {
+      const theirs = await tMember.timeEntries.createManual({ startedAt: "2026-02-27T09:00:00Z", endedAt: "2026-02-27T10:00:00Z" });
+      await expect(tA.timeEntries.startFrom(theirs.id)).rejects.toBeInstanceOf(NotFoundError);
+      const mine = await tA.timeEntries.createManual({ startedAt: "2026-02-27T09:00:00Z", endedAt: "2026-02-27T10:00:00Z", projectId: projA.id });
+      await tA.projects.update(projA.id, { isArchived: true });
+      await expect(tA.timeEntries.startFrom(mine.id)).rejects.toBeInstanceOf(ValidationError);
+      await tA.projects.update(projA.id, { isArchived: false });
+    });
+
     it("different users may run timers at the same time", async () => {
       await tA.timeEntries.startTimer({});
       await expect(tMember.timeEntries.startTimer({})).resolves.toBeDefined();

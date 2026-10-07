@@ -162,6 +162,8 @@ export function createTenant(db: TenantDb, ctx: TenantContext, opts: { now?: () 
           )
           .orderBy(asc(tasks.name));
       },
+      /** Every task of the workspace (for pickers); `list` is the per-project view. */
+      listAll: () => db.select().from(tasks).where(eq(tasks.workspaceId, ws)).orderBy(asc(tasks.name)),
       get: getTask,
       async create(input: z.input<typeof taskInput>) {
         requireAdmin();
