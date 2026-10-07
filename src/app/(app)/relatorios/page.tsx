@@ -1,20 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDayLabel } from "@/lib/entry-groups";
-import { PERIOD_LABELS, resolvePeriod, type ResolvedPeriod } from "@/lib/report-period";
 import { summarize } from "@/lib/report";
-import { parseReportQuery } from "@/lib/schemas/report";
+import { toSearchParams } from "@/lib/schemas/report";
 import { formatHms, localDateString, localTimeString } from "@/lib/time";
 import { getTenant } from "@/server/get-tenant";
 import { loadCatalog } from "../views";
+import { loadReport } from "./load-report";
 import { ReportFilters } from "./report-filters";
 
 export const metadata: Metadata = { title: "Relatórios" };
 
-/** The detail table is capped on screen; the export (next step) carries every row. */
+/** The detail table is capped on screen; the exports carry every row. */
 const MAX_TABLE_ROWS = 500;
 
 export default function ReportsPage({ searchParams }: PageProps<"/relatorios">) {
@@ -26,33 +27,16 @@ export default function ReportsPage({ searchParams }: PageProps<"/relatorios">) 
 }
 
 async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchParams">) {
-  const query = parseReportQuery(await searchParams);
   const { ctx, tenant } = await getTenant();
   const tz = ctx.timezone;
-  const today = localDateString(new Date(), tz);
-
-  const resolved = resolvePeriod(query.periodo, today, tz, { from: query.de, to: query.ate });
-  const periodError = "error" in resolved ? resolved.error : null;
-  const period: ResolvedPeriod = "error" in resolved ? (resolvePeriod("mes", today, tz) as ResolvedPeriod) : resolved;
-
-  const isAdmin = ctx.role === "admin";
-  // A client filter leaves out entries without a project; count them so the gap is visible.
-  const clientFilterOnly = Boolean(query.cliente) && !query.projeto && !query.tarefa;
-  const [catalog, people, result, unassigned] = await Promise.all([
-    loadCatalog(tenant),
-    isAdmin ? tenant.reports.people() : Promise.resolve(null),
-    tenant.reports.run({
-      from: period.from,
-      to: period.to,
-      clientId: query.cliente,
-      projectId: query.projeto,
-      taskId: query.tarefa,
-      userIds: isAdmin ? query.pessoas : undefined,
-    }),
-    clientFilterOnly
-      ? tenant.reports.run({ from: period.from, to: period.to, projectId: "none", userIds: isAdmin ? query.pessoas : undefined })
-      : Promise.resolve(null),
-  ]);
+  const [catalog, report] = await Promise.all([loadCatalog(tenant), loadReport(tenant, ctx, await searchParams)]);
+  const { query, period, periodError, isAdmin } = report;
+  const result = { rows: report.rows, runningCount: report.runningCount };
+  const exportHref = (format: "xlsx" | "csv") => {
+    const params = toSearchParams(query);
+    params.set("formato", format);
+    return `/relatorios/export?${params}`;
+  };
   const unassignedHref = (() => {
     const params = new URLSearchParams({ periodo: query.periodo, projeto: "none" });
     if (query.de) params.set("de", query.de);
@@ -68,13 +52,13 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Relatórios</h1>
         <p className="text-sm text-muted-foreground">
-          {PERIOD_LABELS[periodError ? "mes" : query.periodo]}: {formatDayLabel(period.fromDate)} {period.fromDate.slice(0, 4)} –{" "}
+          {report.periodLabel}: {formatDayLabel(period.fromDate)} {period.fromDate.slice(0, 4)} –{" "}
           {formatDayLabel(period.toDate)} {period.toDate.slice(0, 4)}
           {!isAdmin && " · apenas os seus registros"}
         </p>
       </div>
 
-      <ReportFilters catalog={catalog} people={people} query={query} />
+      <ReportFilters catalog={catalog} people={report.people} query={query} />
 
       {periodError && (
         <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
@@ -87,10 +71,10 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
         </p>
       )}
 
-      {unassigned && unassigned.rows.length > 0 && (
+      {report.unassignedCount > 0 && (
         <p className="rounded-md border bg-muted/50 p-3 text-sm">
-          {unassigned.rows.length === 1 ? "1 registro sem projeto" : `${unassigned.rows.length} registros sem projeto`} neste período não entra
-          {unassigned.rows.length === 1 ? "" : "m"} no filtro de cliente.{" "}
+          {report.unassignedCount === 1 ? "1 registro sem projeto neste período não entra" : `${report.unassignedCount} registros sem projeto neste período não entram`}{" "}
+          no filtro de cliente.{" "}
           <Link href={unassignedHref} className="underline">
             Ver registros sem projeto
           </Link>
@@ -101,6 +85,16 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
         <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">Nenhum registro encontrado com esses filtros.</p>
       ) : (
         <>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {/* Plain anchors: a download, not a navigation (no prefetch, no client routing). */}
+            <Button asChild variant="outline" size="sm">
+              <a href={exportHref("xlsx")}>Baixar XLSX</a>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <a href={exportHref("csv")}>Baixar CSV</a>
+            </Button>
+          </div>
+
           <div className="grid gap-3 sm:grid-cols-3">
             <Stat label="Total de horas" value={formatHms(summary.totalSeconds)} />
             <Stat label="Registros" value={String(summary.totalEntries)} />

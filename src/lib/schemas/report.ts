@@ -33,3 +33,13 @@ export function parseReportQuery(sp: Record<string, string | string[] | undefine
     pessoas: [...new Set(people)],
   });
 }
+
+/** The query back as URL params (only what is set), e.g. to link to the export with the same filters. */
+export function toSearchParams(q: ReportQuery): URLSearchParams {
+  const params = new URLSearchParams({ periodo: q.periodo });
+  for (const [key, value] of [["de", q.de], ["ate", q.ate], ["cliente", q.cliente], ["projeto", q.projeto], ["tarefa", q.tarefa]] as const) {
+    if (value) params.set(key, value);
+  }
+  for (const id of q.pessoas) params.append("pessoas", id);
+  return params;
+}
