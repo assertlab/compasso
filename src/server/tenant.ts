@@ -15,6 +15,7 @@ import {
 } from "@/lib/schemas/catalog";
 import type { WorkspaceRole } from "@/lib/roles";
 import { ForbiddenError, NotFoundError } from "./errors";
+import { createReports } from "./reports";
 import { createTimeEntries } from "./time-entries";
 
 // Any Drizzle Postgres driver (neon-http in production, PGlite in tests).
@@ -81,6 +82,7 @@ export function createTenant(db: TenantDb, ctx: TenantContext, opts: { now?: () 
   }
 
   return {
+    reports: createReports(db, ctx),
     timeEntries: createTimeEntries(db, ctx, { now: opts.now ?? (() => new Date()), getProject, getTask }),
 
     organizations: {
