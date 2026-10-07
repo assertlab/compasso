@@ -50,6 +50,7 @@ async function Calendar({ searchParams }: Pick<PageProps<"/calendario">, "search
       date,
       label: formatDayLabel(date),
       isToday: date === today,
+      isWeekend: i >= 5,
       totalSeconds: views.filter((v) => v.date === date).reduce((sum, v) => sum + (v.durationSeconds ?? 0), 0),
       blocks: layoutDay(views, from, to, now),
     };
