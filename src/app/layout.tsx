@@ -1,6 +1,8 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { OfflineNotice } from "@/components/offline-notice";
+import { ServiceWorkerRegister } from "@/components/sw-register";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
@@ -56,8 +58,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             signInFallbackRedirectUrl="/"
             signUpFallbackRedirectUrl="/"
           >
+            <OfflineNotice />
             {children}
           </ClerkProvider>
+          <ServiceWorkerRegister />
         </ThemeProvider>
       </body>
     </html>
