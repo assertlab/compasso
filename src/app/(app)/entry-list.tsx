@@ -80,7 +80,7 @@ export function EntryList({ entries, catalog, today, currentWeek, loadMoreHref }
   );
 
   const entryRow = (entry: EntryView, nested = false) => (
-    <li key={entry.id} className={`flex items-center gap-2 p-3 ${nested ? "bg-muted/40 pl-6" : ""}`}>
+    <li key={entry.id} className={`flex items-center gap-2 p-3 ${nested ? "border-t border-border/60 bg-background pl-12" : ""}`}>
       {playButton(entry)}
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">{entry.description || "Sem descrição"}</p>
@@ -143,7 +143,7 @@ export function EntryList({ entries, catalog, today, currentWeek, loadMoreHref }
                     const resumable = group.entries.find((e) => e.endedAt !== null);
                     const running = group.entries.some((e) => e.endedAt === null);
                     return (
-                      <li key={id}>
+                      <li key={id} className={open ? "border-l-4 border-l-primary bg-accent/40" : "border-l-4 border-l-transparent"}>
                         <ul>
                           <li className="flex items-center gap-2 p-3">
                             {playButton(resumable ?? latest)}
@@ -154,12 +154,12 @@ export function EntryList({ entries, catalog, today, currentWeek, loadMoreHref }
                                   onClick={() => toggle(id)}
                                   aria-expanded={open}
                                   aria-label={open ? "Recolher registros" : `Mostrar ${group.entries.length} registros`}
-                                  className="inline-flex shrink-0 items-center gap-0.5 rounded bg-secondary px-1.5 py-0.5 text-xs tabular-nums hover:bg-accent"
+                                  className="inline-flex h-6 shrink-0 items-center gap-1 rounded-md bg-primary px-2 text-sm font-semibold tabular-nums text-primary-foreground hover:bg-primary/90"
                                 >
                                   {group.entries.length}
-                                  {open ? <ChevronDown className="size-3" aria-hidden /> : <ChevronRight className="size-3" aria-hidden />}
+                                  {open ? <ChevronDown className="size-4" aria-hidden /> : <ChevronRight className="size-4" aria-hidden />}
                                 </button>
-                                <span className="truncate">{latest.description || "Sem descrição"}</span>
+                                <span className="truncate font-semibold">{latest.description || "Sem descrição"}</span>
                               </p>
                               <p className="truncate text-sm text-muted-foreground">{projectName(latest.projectId)}</p>
                             </div>
