@@ -92,9 +92,10 @@ export async function buildXlsx(input: {
   // ---- Registros
   const det = wb.addWorksheet("Registros", { views: [{ state: "frozen", ySplit: 1 }] });
   const columns = [
-    { header: "Data", key: "date", width: 12 },
-    { header: "Início", key: "start", width: 8 },
-    { header: "Fim", key: "end", width: 8 },
+    { header: "Data de início", key: "date", width: 14 },
+    { header: "Hora de início", key: "start", width: 14 },
+    { header: "Data de término", key: "endDate", width: 16 },
+    { header: "Hora de término", key: "end", width: 15 },
     { header: "Duração", key: "duration", width: 11 },
     { header: "Horas", key: "hours", width: 8 },
     ...(input.includePerson ? [{ header: "Pessoa", key: "person", width: 22 }] : []),
@@ -110,6 +111,7 @@ export async function buildXlsx(input: {
     det.addRow({
       date: dateCell(e.date),
       start: timeFraction(e.start),
+      endDate: dateCell(e.endDate),
       end: timeFraction(e.end),
       duration: e.seconds / DAY,
       hours: e.seconds / 3600,
@@ -121,6 +123,7 @@ export async function buildXlsx(input: {
     });
   }
   det.getColumn("date").numFmt = "dd/mm/yyyy";
+  det.getColumn("endDate").numFmt = "dd/mm/yyyy";
   det.getColumn("start").numFmt = "hh:mm";
   det.getColumn("end").numFmt = "hh:mm";
   det.getColumn("duration").numFmt = FMT_DURATION;
@@ -131,8 +134,8 @@ export async function buildXlsx(input: {
     det.autoFilter = { from: "A1", to: { row: last, column: columns.length } };
     const totals = det.addRow({});
     totals.getCell("date").value = "Total";
-    totals.getCell("duration").value = { formula: `SUM(D2:D${last})`, result: input.summary.totalSeconds / DAY };
-    totals.getCell("hours").value = { formula: `SUM(E2:E${last})`, result: input.summary.totalSeconds / 3600 };
+    totals.getCell("duration").value = { formula: `SUM(E2:E${last})`, result: input.summary.totalSeconds / DAY };
+    totals.getCell("hours").value = { formula: `SUM(F2:F${last})`, result: input.summary.totalSeconds / 3600 };
     totals.font = BOLD;
     totals.eachCell((cell) => (cell.border = { top: { style: "thin" } }));
   }

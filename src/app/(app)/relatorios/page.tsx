@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDayLabel } from "@/lib/entry-groups";
 import { summarize } from "@/lib/report";
+import { formatTimeSpan } from "@/lib/report-export";
 import { toSearchParams } from "@/lib/schemas/report";
 import { formatHms, localDateString, localTimeString } from "@/lib/time";
 import { getTenant } from "@/server/get-tenant";
@@ -158,7 +159,12 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
                     <TableCell>{[r.clientName, r.projectName, r.taskName].filter(Boolean).join(" / ") || "Sem projeto"}</TableCell>
                     <TableCell className="max-w-xs truncate">{r.description || "—"}</TableCell>
                     <TableCell className="whitespace-nowrap font-mono text-xs tabular-nums">
-                      {localTimeString(r.startedAt, tz)}–{localTimeString(r.endedAt, tz)}
+                      {formatTimeSpan({
+                        date: localDateString(r.startedAt, tz),
+                        start: localTimeString(r.startedAt, tz),
+                        endDate: localDateString(r.endedAt, tz),
+                        end: localTimeString(r.endedAt, tz),
+                      })}
                     </TableCell>
                     <TableCell className="text-right font-mono tabular-nums">{formatHms(r.seconds)}</TableCell>
                   </TableRow>

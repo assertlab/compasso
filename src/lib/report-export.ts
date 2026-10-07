@@ -9,8 +9,11 @@ export type ExportFormat = (typeof EXPORT_FORMATS)[number];
 export type ExportRow = {
   /** Local calendar day the entry started ("YYYY-MM-DD"). */
   date: string;
-  /** Local wall-clock times "HH:MM". */
+  /** Local wall-clock start time "HH:MM". */
   start: string;
+  /** Local day the entry ended ("YYYY-MM-DD"); differs from `date` for entries that cross midnight. */
+  endDate: string;
+  /** Local wall-clock end time "HH:MM". */
   end: string;
   seconds: number;
   person: string;
@@ -24,6 +27,7 @@ export function toExportRows(rows: ReportRow[], timeZone: string): ExportRow[] {
   return rows.map((r) => ({
     date: localDateString(r.startedAt, timeZone),
     start: localTimeString(r.startedAt, timeZone),
+    endDate: localDateString(r.endedAt, timeZone),
     end: localTimeString(r.endedAt, timeZone),
     seconds: r.seconds,
     person: r.userName,
@@ -32,6 +36,12 @@ export function toExportRows(rows: ReportRow[], timeZone: string): ExportRow[] {
     task: r.taskName ?? "",
     description: r.description,
   }));
+}
+
+/** "09:00–10:30", or "20:00–01:30 (+1)" when the entry ends on a later day (shown in the on-screen table). */
+export function formatTimeSpan(r: Pick<ExportRow, "date" | "start" | "end" | "endDate">): string {
+  const days = Math.round((Date.parse(`${r.endDate}T00:00:00Z`) - Date.parse(`${r.date}T00:00:00Z`)) / 86_400_000);
+  return `${r.start}–${r.end}${days > 0 ? ` (+${days})` : ""}`;
 }
 
 /** "2026-02-03" -> "03/02/2026". */
@@ -56,13 +66,14 @@ export function csvCell(value: string): string {
  * 2-decimal value used elsewhere; the duration column keeps the exact HH:MM:SS.
  */
 export function buildCsv(rows: ExportRow[], opts: { includePerson: boolean }): string {
-  const header = ["Data", "Início", "Fim", "Duração", "Horas", ...(opts.includePerson ? ["Pessoa"] : []), "Cliente", "Projeto", "Tarefa", "Descrição"];
+  const header = ["Data de início", "Hora de início", "Data de término", "Hora de término", "Duração", "Horas", ...(opts.includePerson ? ["Pessoa"] : []), "Cliente", "Projeto", "Tarefa", "Descrição"];
   const lines = [header.map(csvCell).join(DELIMITER)];
   for (const r of rows) {
     lines.push(
       [
         formatDateBr(r.date),
         r.start,
+        formatDateBr(r.endDate),
         r.end,
         formatHms(r.seconds),
         toDecimalHours(r.seconds).toFixed(2).replace(".", ","),

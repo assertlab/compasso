@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { buildCsv, csvCell, describeFilters, exportFileName, formatDateBr, toExportRows, type ExportRow } from "./report-export";
+import { buildCsv, csvCell, describeFilters, exportFileName, formatDateBr, formatTimeSpan, toExportRows, type ExportRow } from "./report-export";
 import type { ReportRow } from "./report";
 
 const row = (over: Partial<ExportRow> = {}): ExportRow => ({
   date: "2026-02-02",
   start: "09:00",
+  endDate: "2026-02-02",
   end: "10:30",
   seconds: 5400,
   person: "Ana",
@@ -37,8 +38,8 @@ describe("buildCsv", () => {
     const csv = buildCsv([row()], { includePerson: false });
     expect(csv.startsWith("﻿")).toBe(true);
     const lines = csv.slice(1).split("\r\n");
-    expect(lines[0]).toBe("Data;Início;Fim;Duração;Horas;Cliente;Projeto;Tarefa;Descrição");
-    expect(lines[1]).toBe("02/02/2026;09:00;10:30;01:30:00;1,50;3 Corações;Arquitetura;Revisão;Reunião");
+    expect(lines[0]).toBe("Data de início;Hora de início;Data de término;Hora de término;Duração;Horas;Cliente;Projeto;Tarefa;Descrição");
+    expect(lines[1]).toBe("02/02/2026;09:00;02/02/2026;10:30;01:30:00;1,50;3 Corações;Arquitetura;Revisão;Reunião");
     expect(lines[2]).toBe("");
   });
 
@@ -70,7 +71,7 @@ describe("toExportRows", () => {
       endedAt: new Date("2026-02-03T03:30:00Z"),
       seconds: 3600,
     };
-    expect(toExportRows([r], "America/Recife")[0]).toMatchObject({ date: "2026-02-02", start: "23:30", end: "00:30", project: "Sem projeto", client: "", task: "" });
+    expect(toExportRows([r], "America/Recife")[0]).toMatchObject({ date: "2026-02-02", start: "23:30", endDate: "2026-02-03", end: "00:30", project: "Sem projeto", client: "", task: "" });
   });
 });
 
@@ -78,6 +79,16 @@ describe("helpers", () => {
   it("formats dates and file names", () => {
     expect(formatDateBr("2026-02-03")).toBe("03/02/2026");
     expect(exportFileName("2026-02-01", "2026-02-28", "xlsx")).toBe("compasso-horas_2026-02-01_2026-02-28.xlsx");
+  });
+
+  it("marks entries that end on a later day", () => {
+    expect(formatTimeSpan(row())).toBe("09:00–10:30");
+    expect(formatTimeSpan(row({ start: "20:00", end: "01:30", endDate: "2026-02-03" }))).toBe("20:00–01:30 (+1)");
+  });
+
+  it("writes the end date of a night entry in the CSV", () => {
+    const csv = buildCsv([row({ start: "20:00", end: "01:30", endDate: "2026-02-03", seconds: 19800 })], { includePerson: false }).slice(1).split("\r\n");
+    expect(csv[1]).toBe("02/02/2026;20:00;03/02/2026;01:30;05:30:00;5,50;3 Corações;Arquitetura;Revisão;Reunião");
   });
 
   it("describes only the filters that are set", () => {
