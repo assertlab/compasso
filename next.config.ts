@@ -3,6 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
+  // Loaded from node_modules at runtime instead of being bundled (large CommonJS dependency tree).
+  serverExternalPackages: ["exceljs"],
   partialPrefetching: true,
   async headers() {
     return [

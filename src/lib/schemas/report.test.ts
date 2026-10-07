@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseReportQuery } from "./report";
+import { parseReportQuery, toSearchParams } from "./report";
 
 const U1 = "11111111-1111-4111-8111-111111111111";
 const U2 = "22222222-2222-4222-8222-222222222222";
@@ -26,5 +26,14 @@ describe("parseReportQuery", () => {
   it("reads people repeated or comma-separated, without duplicates", () => {
     expect(parseReportQuery({ pessoas: [U1, U2, U1] }).pessoas).toEqual([U1, U2]);
     expect(parseReportQuery({ pessoas: `${U1},${U2}` }).pessoas).toEqual([U1, U2]);
+  });
+
+  it("round-trips through the URL", () => {
+    const q = parseReportQuery({ periodo: "custom", de: "2026-02-01", ate: "2026-02-28", cliente: U1, projeto: "none", pessoas: [U1, U2] });
+    const params = toSearchParams(q);
+    expect(params.get("periodo")).toBe("custom");
+    expect(params.getAll("pessoas")).toEqual([U1, U2]);
+    expect(parseReportQuery(Object.fromEntries([...params.keys()].map((k) => [k, params.getAll(k).length > 1 ? params.getAll(k) : params.get(k)!])))).toEqual(q);
+    expect(toSearchParams(parseReportQuery({})).toString()).toBe("periodo=mes");
   });
 });
