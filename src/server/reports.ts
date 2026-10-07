@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lt } from "drizzle-orm";
 import { organizations, projects, tasks, timeEntries, users, workspaceMembers } from "@/db/schema";
+import { displayName } from "@/lib/display-name";
 import { entryDurationSeconds } from "@/lib/time";
 import type { ReportRow } from "@/lib/report";
 import { ForbiddenError } from "./errors";
@@ -18,9 +19,6 @@ export type ReportFilter = {
 };
 
 export type Person = { id: string; name: string; isRemoved: boolean };
-
-const displayName = (u: { name: string | null; email: string; deletedAt: Date | null }) =>
-  u.deletedAt ? "Usuário removido" : (u.name?.trim() || u.email);
 
 /**
  * Read-only reporting over time entries (ADR-030). Visibility follows ADR-029:

@@ -5,17 +5,19 @@ import type { CatalogView, EntryView } from "./types";
 
 /** Everything the pickers and labels need, as plain serializable data. Archived items are included (existing entries may point to them). */
 export async function loadCatalog(tenant: Tenant): Promise<CatalogView> {
-  const [organizations, projects, tasks, tags] = await Promise.all([
+  const [organizations, projects, tasks, tags, allowedProjectIds] = await Promise.all([
     tenant.organizations.list({ includeArchived: true }),
     tenant.projects.list({ includeArchived: true }),
     tenant.tasks.listAll(),
     tenant.tags.list(),
+    tenant.projectMembers.myProjectIds(),
   ]);
   return {
     organizations: organizations.map((o) => ({ id: o.id, name: o.name })),
     projects: projects.map((p) => ({ id: p.id, name: p.name, color: p.color, organizationId: p.organizationId, isArchived: p.isArchived })),
     tasks: tasks.map((t) => ({ id: t.id, projectId: t.projectId, name: t.name, isCompleted: t.isCompleted })),
     tags: tags.map((t) => ({ id: t.id, name: t.name, color: t.color })),
+    allowedProjectIds,
   };
 }
 

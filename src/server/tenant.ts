@@ -1,8 +1,8 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray, or } from "drizzle-orm";
 import type { PgDatabase } from "drizzle-orm/pg-core";
 import type { z } from "zod";
 import * as schema from "@/db/schema";
-import { organizations, projects, tags, tasks } from "@/db/schema";
+import { organizations, projectMembers, projects, tags, tasks, timeEntries } from "@/db/schema";
 import {
   organizationInput,
   organizationPatch,
@@ -15,6 +15,7 @@ import {
 } from "@/lib/schemas/catalog";
 import type { WorkspaceRole } from "@/lib/roles";
 import { ForbiddenError, NotFoundError } from "./errors";
+import { createProjectMembers } from "./project-members";
 import { createReports } from "./reports";
 import { createTimeEntries } from "./time-entries";
 
@@ -81,9 +82,22 @@ export function createTenant(db: TenantDb, ctx: TenantContext, opts: { now?: () 
     return row;
   }
 
+  const participation = createProjectMembers(db, ctx, { getProject });
+
+  /** Members only see the tasks of projects they take part in: a foreign project looks empty, not forbidden. */
+  async function canSeeTasksOf(projectId: string) {
+    return participation.canUse(projectId);
+  }
+
   return {
     reports: createReports(db, ctx),
-    timeEntries: createTimeEntries(db, ctx, { now: opts.now ?? (() => new Date()), getProject, getTask }),
+    projectMembers: participation,
+    timeEntries: createTimeEntries(db, ctx, {
+      now: opts.now ?? (() => new Date()),
+      getProject,
+      getTask,
+      canUseProject: participation.canUse,
+    }),
 
     organizations: {
       list: ({ includeArchived = false } = {}) =>
@@ -132,6 +146,8 @@ export function createTenant(db: TenantDb, ctx: TenantContext, opts: { now?: () 
         const data = projectInput.parse(input);
         await getOrganization(data.organizationId); // must belong to this workspace
         const [row] = await db.insert(projects).values({ ...data, workspaceId: ws }).returning();
+        // The creator takes part in the new project (ADR-030); other members are added by an admin.
+        await db.insert(projectMembers).values({ workspaceId: ws, projectId: row.id, userId: ctx.userId }).onConflictDoNothing();
         return row;
       },
       async update(id: string, patch: z.input<typeof projectPatch>) {
@@ -152,6 +168,7 @@ export function createTenant(db: TenantDb, ctx: TenantContext, opts: { now?: () 
     tasks: {
       async list(projectId: string, { includeCompleted = true } = {}) {
         await getProject(projectId); // a foreign project id is "not found", not an empty list
+        if (!(await canSeeTasksOf(projectId))) return [];
         return db
           .select()
           .from(tasks)
@@ -164,9 +181,28 @@ export function createTenant(db: TenantDb, ctx: TenantContext, opts: { now?: () 
           )
           .orderBy(asc(tasks.name));
       },
-      /** Every task of the workspace (for pickers); `list` is the per-project view. */
-      listAll: () => db.select().from(tasks).where(eq(tasks.workspaceId, ws)).orderBy(asc(tasks.name)),
-      get: getTask,
+      /**
+       * Every task the caller may see (for pickers and labels); `list` is the per-project view. Admins see all;
+       * members see the tasks of their projects plus those on their own entries, so old entries keep their label.
+       */
+      async listAll() {
+        if (ctx.role === "admin") return db.select().from(tasks).where(eq(tasks.workspaceId, ws)).orderBy(asc(tasks.name));
+        const mine = db.select({ id: projectMembers.projectId }).from(projectMembers).where(and(eq(projectMembers.workspaceId, ws), eq(projectMembers.userId, ctx.userId)));
+        const used = db
+          .select({ id: timeEntries.taskId })
+          .from(timeEntries)
+          .where(and(eq(timeEntries.workspaceId, ws), eq(timeEntries.userId, ctx.userId)));
+        return db
+          .select()
+          .from(tasks)
+          .where(and(eq(tasks.workspaceId, ws), or(inArray(tasks.projectId, mine), inArray(tasks.id, used))))
+          .orderBy(asc(tasks.name));
+      },
+      async get(id: string) {
+        const task = await getTask(id);
+        if (!(await canSeeTasksOf(task.projectId))) throw new NotFoundError("Task");
+        return task;
+      },
       async create(input: z.input<typeof taskInput>) {
         requireAdmin();
         const data = taskInput.parse(input);

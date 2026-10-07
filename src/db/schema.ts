@@ -158,6 +158,31 @@ export const tasks = pgTable(
   ],
 );
 
+/**
+ * Who takes part in a project (access model, ADR-030). Members may log hours only in projects they take
+ * part in and see only those projects' tasks; admins are not restricted by it. Added/removed by admins only.
+ */
+export const projectMembers = pgTable(
+  "project_members",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("project_members_project_user_uq").on(t.projectId, t.userId),
+    index("project_members_ws_user_idx").on(t.workspaceId, t.userId),
+  ],
+);
+
 export const tags = pgTable(
   "tags",
   {
