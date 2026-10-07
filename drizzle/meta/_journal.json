@@ -15,6 +15,13 @@
       "when": 1791374992286,
       "tag": "0001_soft_delete",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791383891403,
+      "tag": "0002_time_entries_soft_delete",
+      "breakpoints": true
     }
   ]
 }
