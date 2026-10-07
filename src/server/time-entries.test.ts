@@ -241,6 +241,43 @@ describe("time entries", () => {
     });
   });
 
+  describe("move and resize (calendar drag)", () => {
+    const base = { startedAt: "2026-02-27T09:00:00Z", endedAt: "2026-02-27T10:30:00Z" };
+
+    it("moves an entry keeping its exact duration, across days too", async () => {
+      const e = await tA.timeEntries.createManual({ startedAt: "2026-02-27T09:00:07Z", endedAt: "2026-02-27T10:30:42Z" });
+      const later = await tA.timeEntries.move(e.id, 45);
+      expect(later.startedAt).toEqual(iso("2026-02-27T09:45:07Z"));
+      expect(later.endedAt).toEqual(iso("2026-02-27T11:15:42Z"));
+      const earlier = await tA.timeEntries.move(e.id, -(24 * 60) - 45);
+      expect(earlier.startedAt).toEqual(iso("2026-02-26T09:00:07Z"));
+    });
+
+    it("refuses moves into the future and keeps the entry unchanged", async () => {
+      const e = await tA.timeEntries.createManual(base);
+      await expect(tA.timeEntries.move(e.id, 24 * 60)).rejects.toBeInstanceOf(ValidationError);
+      const [same] = await tA.timeEntries.list({ from: iso("2026-02-27T00:00:00Z"), to: iso("2026-02-28T00:00:00Z") });
+      expect(same.startedAt).toEqual(iso(base.startedAt));
+    });
+
+    it("resizes either edge and validates the result", async () => {
+      const e = await tA.timeEntries.createManual(base);
+      expect((await tA.timeEntries.resize(e.id, "end", iso("2026-02-27T11:00:00Z"))).endedAt).toEqual(iso("2026-02-27T11:00:00Z"));
+      expect((await tA.timeEntries.resize(e.id, "start", iso("2026-02-27T08:00:00Z"))).startedAt).toEqual(iso("2026-02-27T08:00:00Z"));
+      await expect(tA.timeEntries.resize(e.id, "end", iso("2026-02-27T07:00:00Z"))).rejects.toBeInstanceOf(ValidationError);
+      await expect(tA.timeEntries.resize(e.id, "start", iso("2026-02-26T08:00:00Z"))).rejects.toBeInstanceOf(ValidationError); // > 24 h
+    });
+
+    it("does not touch running timers, other people's entries or other workspaces", async () => {
+      const running = await tA.timeEntries.startTimer({});
+      await expect(tA.timeEntries.move(running.id, 15)).rejects.toBeInstanceOf(ValidationError);
+      await expect(tA.timeEntries.resize(running.id, "end", clock)).rejects.toBeInstanceOf(ValidationError);
+      const theirs = await tMember.timeEntries.createManual(base);
+      await expect(tA.timeEntries.move(theirs.id, 15)).rejects.toBeInstanceOf(NotFoundError);
+      await expect(tB.timeEntries.resize(theirs.id, "end", iso("2026-02-27T11:00:00Z"))).rejects.toBeInstanceOf(NotFoundError);
+    });
+  });
+
   describe("logical deletion", () => {
     const base = { startedAt: "2026-02-27T09:00:00Z", endedAt: "2026-02-27T11:00:00Z" };
     const day = { from: iso("2026-02-27T00:00:00Z"), to: iso("2026-02-28T00:00:00Z") };
