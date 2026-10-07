@@ -4,7 +4,9 @@ import { clerkMiddleware } from "@clerk/nextjs/server";
 // decide who may see what: path matching can diverge from how Next routes a
 // request, so every protected page, route handler and Server Action checks
 // access itself via `requireWorkspaceContext()` (src/server/workspace-context.ts).
-export default clerkMiddleware();
+// Point Clerk redirects (e.g. auth().redirectToSignIn()) at our own pages instead of
+// the hosted Account Portal, which is what Clerk uses when no sign-in URL is configured.
+export default clerkMiddleware({ signInUrl: "/sign-in", signUpUrl: "/sign-up" });
 
 export const config = {
   matcher: [
