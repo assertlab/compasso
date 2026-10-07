@@ -15,6 +15,7 @@ Tokens, componentes e convenções estão em `design-system.md`; a referência v
 - Toda query operacional filtra por `workspace_id`; nunca confiar em IDs do cliente sem checar o tenant.
 - Autorização por recurso, não por caminho: toda página, route handler e Server Action protegido chama `requireWorkspaceContext()` (o `proxy.ts` só expõe a sessão do Clerk, não bloqueia rotas).
 - Remoção sempre lógica (ADR-025): nada de DELETE físico em users/workspaces/membros. `users.deleted_at` (anonimizado, LGPD; a linha vira tombstone e mantém `clerk_id`), `workspaces.archived_at`, `workspace_members.removed_at`; consultas de acesso filtram esses campos. Escritas de identidade vêm de `src/server/clerk-sync.ts` (webhook + provisionamento).
+- Service worker (`public/sw.js`, ADR-012): só serve `/offline` como fallback de navegação e cacheia ativos estáticos imutáveis; nunca cachear HTML de páginas do app, RSC, `/api` nem dados autenticados. Só registra em produção (para testar: `npm run build && npm start`).
 - Instantes em UTC (timestamptz); fuso IANA no usuário e no registro. Duração nunca é armazenada: derivar de `ended_at - started_at` (ver `src/lib/time.ts`).
 - Um único timer ativo por usuário (índice único parcial).
 - Valores monetários em Decimal (fora do MVP). Exportações escrevem números reais, nunca texto.
