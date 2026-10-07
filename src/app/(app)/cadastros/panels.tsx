@@ -54,13 +54,13 @@ export async function OrganizationsPanel({ tenant, canEdit, includeArchived, bas
     <div className="flex flex-col gap-3">
       <Toolbar canEdit={canEdit} includeArchived={includeArchived} basePath={basePath} create={<OrganizationDialog />} />
       {organizations.length === 0 ? (
-        <Empty canEdit={canEdit} what="Organizações" />
+        <Empty canEdit={canEdit} what="Clientes" />
       ) : (
         <List>
           {organizations.map((organization) => (
             <Row key={organization.id}>
               <p className="min-w-0 flex-1 truncate font-medium">{organization.name}</p>
-              {organization.isArchived && <Badge variant="outline">Arquivada</Badge>}
+              {organization.isArchived && <Badge variant="outline">Arquivado</Badge>}
               {canEdit && (
                 <div className="flex items-center gap-1">
                   <OrganizationDialog organization={organization} />

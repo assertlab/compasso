@@ -8,9 +8,9 @@ const color = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Escolha uma cor válida (#R
 export const organizationInput = z.object({ name });
 export const organizationPatch = z.object({ name: name.optional(), isArchived: z.boolean().optional() });
 
-export const projectInput = z.object({ organizationId: z.uuid("Escolha uma organização"), name, color: color.optional() });
+export const projectInput = z.object({ organizationId: z.uuid("Escolha um cliente"), name, color: color.optional() });
 export const projectPatch = z.object({
-  organizationId: z.uuid("Escolha uma organização").optional(),
+  organizationId: z.uuid("Escolha um cliente").optional(),
   name: name.optional(),
   color: color.optional(),
   isArchived: z.boolean().optional(),

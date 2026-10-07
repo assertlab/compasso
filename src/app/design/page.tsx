@@ -146,7 +146,7 @@ export default function DesignPage() {
         <Section title="Formulário e diálogo">
           <div className="grid max-w-xl gap-4">
             <div className="grid gap-1.5">
-              <Label htmlFor="org">Organização</Label>
+              <Label htmlFor="org">Cliente</Label>
               <Input id="org" placeholder="Nome da empresa ou do cliente" />
             </div>
             <div className="grid gap-1.5">
@@ -190,7 +190,7 @@ export default function DesignPage() {
           <Card>
             <CardHeader>
               <CardTitle>Registros de fevereiro</CardTitle>
-              <CardDescription>Agrupados por organização e projeto</CardDescription>
+              <CardDescription>Agrupados por cliente e projeto</CardDescription>
             </CardHeader>
             <CardContent className="px-2 pt-3 pb-2">
               <ul className="flex flex-col divide-y sm:hidden" aria-label="Registros">
@@ -216,7 +216,7 @@ export default function DesignPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Dia</TableHead>
-                    <TableHead>Organização · Projeto</TableHead>
+                    <TableHead>Cliente · Projeto</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead>Tag</TableHead>
                     <TableHead data-numeric className="text-right">Duração</TableHead>
