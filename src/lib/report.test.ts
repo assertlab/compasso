@@ -16,6 +16,7 @@ const row = (over: Partial<ReportRow>): ReportRow => ({
   startedAt: new Date("2026-02-02T12:00:00Z"),
   endedAt: new Date("2026-02-02T13:00:00Z"),
   seconds: 3600,
+  corrected: false,
   ...over,
 });
 
