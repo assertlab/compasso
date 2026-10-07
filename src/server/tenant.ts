@@ -15,12 +15,13 @@ import {
 } from "@/lib/schemas/catalog";
 import type { WorkspaceRole } from "@/lib/roles";
 import { ForbiddenError, NotFoundError } from "./errors";
+import { createTimeEntries } from "./time-entries";
 
 // Any Drizzle Postgres driver (neon-http in production, PGlite in tests).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type TenantDb = PgDatabase<any, typeof schema>;
 
-export type TenantContext = { userId: string; workspaceId: string; role: WorkspaceRole };
+export type TenantContext = { userId: string; workspaceId: string; role: WorkspaceRole; timezone: string };
 
 const hasChanges = (patch: object) => Object.values(patch).some((v) => v !== undefined);
 
@@ -36,7 +37,7 @@ const hasChanges = (patch: object) => Object.values(patch).some((v) => v !== und
  *  - writes to the catalog are admin-only; reads are open to every member;
  *  - there is no physical delete: use archive/complete flags (ADR-025 spirit).
  */
-export function createTenant(db: TenantDb, ctx: TenantContext) {
+export function createTenant(db: TenantDb, ctx: TenantContext, opts: { now?: () => Date } = {}) {
   const ws = ctx.workspaceId;
 
   function requireAdmin() {
@@ -80,6 +81,8 @@ export function createTenant(db: TenantDb, ctx: TenantContext) {
   }
 
   return {
+    timeEntries: createTimeEntries(db, ctx, { now: opts.now ?? (() => new Date()), getProject, getTask }),
+
     organizations: {
       list: ({ includeArchived = false } = {}) =>
         db

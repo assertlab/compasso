@@ -199,6 +199,8 @@ export const timeEntries = pgTable(
     /** IANA zone of the user when the entry was recorded (fidelity for reports). */
     timezone: text("timezone").notNull(),
     isBillable: boolean("is_billable").notNull().default(true),
+    /** Logical deletion: the entry is hidden everywhere and can be restored. A deleted entry never counts as the running timer. */
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -207,10 +209,10 @@ export const timeEntries = pgTable(
       "time_entries_end_after_start",
       sql`${t.endedAt} is null or ${t.endedAt} > ${t.startedAt}`,
     ),
-    // At most one running timer per user.
+    // At most one running (and not deleted) timer per user, across all workspaces.
     uniqueIndex("time_entries_one_running_per_user_uq")
       .on(t.userId)
-      .where(sql`${t.endedAt} is null`),
+      .where(sql`${t.endedAt} is null and ${t.deletedAt} is null`),
     index("time_entries_ws_user_start_idx").on(
       t.workspaceId,
       t.userId,

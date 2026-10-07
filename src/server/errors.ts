@@ -13,3 +13,19 @@ export class ForbiddenError extends Error {
     this.name = "ForbiddenError";
   }
 }
+
+/** The input is well-formed but breaks a business rule; carries messages (pt-BR) per field. */
+export class ValidationError extends Error {
+  constructor(public readonly fieldErrors: Record<string, string>) {
+    super(Object.values(fieldErrors)[0] ?? "Invalid input");
+    this.name = "ValidationError";
+  }
+}
+
+/** The operation conflicts with the current state (e.g. a timer is already running in another workspace). */
+export class ConflictError extends Error {
+  constructor(message = "Conflict") {
+    super(message);
+    this.name = "ConflictError";
+  }
+}

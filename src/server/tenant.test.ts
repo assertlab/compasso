@@ -4,6 +4,8 @@ import { createTestDb, seedWorkspace, type TestDb } from "@/test/db";
 import { ForbiddenError, NotFoundError } from "./errors";
 import { createTenant, type Tenant } from "./tenant";
 
+const TZ = "America/Recife";
+
 // Two workspaces, A (the caller) and B (another tenant), each with the same catalog names
 // on purpose: names are unique per workspace, ids never are interchangeable.
 describe("tenant isolation", () => {
@@ -24,9 +26,9 @@ describe("tenant isolation", () => {
     db = await createTestDb();
     a = await seedWorkspace(db, "a");
     b = await seedWorkspace(db, "b");
-    tA = createTenant(db, { ...a, role: "admin" });
-    tB = createTenant(db, { ...b, role: "admin" });
-    tAMember = createTenant(db, { ...a, role: "member" });
+    tA = createTenant(db, { ...a, role: "admin", timezone: TZ });
+    tB = createTenant(db, { ...b, role: "admin", timezone: TZ });
+    tAMember = createTenant(db, { ...a, role: "member", timezone: TZ });
 
     orgA = await tA.organizations.create({ name: "Cliente" });
     orgB = await tB.organizations.create({ name: "Cliente" });
