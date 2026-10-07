@@ -2,13 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   entryDurationSeconds,
   formatHms,
-  addDays,
   localDateString,
-  localTimeString,
   toDecimalHours,
   zonedDayRange,
   zonedMidnightUtc,
-  zonedTimeToUtc,
 } from "./time";
 
 const at = (iso: string) => new Date(iso);
@@ -87,25 +84,5 @@ describe("localDateString", () => {
     const instant = at("2026-02-28T01:30:00Z"); // 22:30 on the 27th in Recife
     expect(localDateString(instant, "America/Recife")).toBe("2026-02-27");
     expect(localDateString(instant, "UTC")).toBe("2026-02-28");
-  });
-});
-
-describe("wall-clock conversion", () => {
-  it("converts local date and time to UTC and back", () => {
-    const utc = zonedTimeToUtc("2026-02-27", "09:30", "America/Recife");
-    expect(utc.toISOString()).toBe("2026-02-27T12:30:00.000Z");
-    expect(localTimeString(utc, "America/Recife")).toBe("09:30");
-  });
-
-  it("respects DST: 09:00 in New York is 13:00Z in summer and 14:00Z in winter", () => {
-    expect(zonedTimeToUtc("2026-07-01", "09:00", "America/New_York").toISOString()).toBe("2026-07-01T13:00:00.000Z");
-    expect(zonedTimeToUtc("2026-12-01", "09:00", "America/New_York").toISOString()).toBe("2026-12-01T14:00:00.000Z");
-  });
-
-  it("rejects malformed times and adds days across month ends", () => {
-    expect(() => zonedTimeToUtc("2026-02-27", "9:5", "UTC")).toThrow(RangeError);
-    expect(() => zonedTimeToUtc("2026-02-27", "24:00", "UTC")).toThrow(RangeError);
-    expect(addDays("2026-02-28", 1)).toBe("2026-03-01");
-    expect(addDays("2026-01-01", -1)).toBe("2025-12-31");
   });
 });

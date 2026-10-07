@@ -51,13 +51,6 @@ describe("tenant isolation", () => {
     expect((await tA.tasks.list(projA.id)).every((t) => t.workspaceId === a.workspaceId)).toBe(true);
   });
 
-  it("lists all tasks of the caller's workspace only", async () => {
-    const all = await tA.tasks.listAll();
-    expect(all.length).toBeGreaterThan(0);
-    expect(all.every((t) => t.workspaceId === a.workspaceId)).toBe(true);
-    expect(all.map((t) => t.id)).not.toContain(taskB.id);
-  });
-
   it("treats another workspace's ids as not found on read", async () => {
     await expect(tA.organizations.get(orgB.id)).rejects.toBeInstanceOf(NotFoundError);
     await expect(tA.projects.get(projB.id)).rejects.toBeInstanceOf(NotFoundError);

@@ -56,40 +56,20 @@ function parseLocalDate(date: string): [number, number, number] {
   return [Number(m[1]), Number(m[2]), Number(m[3])];
 }
 
-const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
-
-/** The UTC instant of wall-clock `date` ("YYYY-MM-DD") + `time` ("HH:MM") in `timeZone` (DST-safe; wall times skipped by a DST jump are not specially handled). */
-export function zonedTimeToUtc(date: string, time: string, timeZone: string): Date {
+/** The UTC instant at which the local calendar day `date` ("YYYY-MM-DD") starts in `timeZone` (DST-safe). */
+export function zonedMidnightUtc(date: string, timeZone: string): Date {
   const [y, m, d] = parseLocalDate(date);
-  const t = TIME_RE.exec(time);
-  if (!t) throw new RangeError(`Invalid time "${time}", expected HH:MM`);
-  const wall = Date.UTC(y, m - 1, d, Number(t[1]), Number(t[2]));
+  const wall = Date.UTC(y, m - 1, d);
   // Two passes: the offset at the first guess may differ from the offset at the real instant around DST changes.
   const first = wall - zoneOffsetMs(new Date(wall), timeZone);
   return new Date(wall - zoneOffsetMs(new Date(first), timeZone));
 }
 
-/** The UTC instant at which the local calendar day `date` ("YYYY-MM-DD") starts in `timeZone`. */
-export function zonedMidnightUtc(date: string, timeZone: string): Date {
-  return zonedTimeToUtc(date, "00:00", timeZone);
-}
-
-/** Calendar arithmetic on "YYYY-MM-DD" strings (no time zone involved). */
-export function addDays(date: string, days: number): string {
-  const [y, m, d] = parseLocalDate(date);
-  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
-}
-
-/** The local wall-clock time ("HH:MM") of an instant in `timeZone`. */
-export function localTimeString(instant: Date, timeZone: string): string {
-  const parts = new Intl.DateTimeFormat("en-US", { timeZone, hourCycle: "h23", hour: "2-digit", minute: "2-digit" }).formatToParts(instant);
-  const get = (type: string) => parts.find((p) => p.type === type)?.value;
-  return `${get("hour")}:${get("minute")}`;
-}
-
 /** Half-open UTC range [from, to) covering the local calendar day `date` in `timeZone` (23, 24 or 25 hours long). */
 export function zonedDayRange(date: string, timeZone: string): { from: Date; to: Date } {
-  return { from: zonedMidnightUtc(date, timeZone), to: zonedMidnightUtc(addDays(date, 1), timeZone) };
+  const [y, m, d] = parseLocalDate(date);
+  const next = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+  return { from: zonedMidnightUtc(date, timeZone), to: zonedMidnightUtc(next, timeZone) };
 }
 
 /** The local calendar date ("YYYY-MM-DD") of an instant in `timeZone`. */
