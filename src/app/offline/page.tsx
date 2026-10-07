@@ -15,6 +15,8 @@ export default function OfflinePage() {
       <p className="text-sm text-muted-foreground">
         Não foi possível carregar esta tela. Seus registros já salvos estão seguros; reconecte-se e tente novamente.
       </p>
+      {/* Plain <a> on purpose: a full page load must hit the network (and the service worker), not a client-side transition. */}
+      {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
       <a
         href="/"
         className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
