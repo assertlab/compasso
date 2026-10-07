@@ -1,6 +1,7 @@
 import { and, desc, eq, gte, ilike, inArray, isNotNull, isNull, lt, max, sql } from "drizzle-orm";
 import type { z } from "zod";
-import { tags, timeEntries, timeEntryTags, workspaces } from "@/db/schema";
+import { tags, timeEntries, timeEntryAudit, timeEntryTags, users, workspaces } from "@/db/schema";
+import { displayName } from "@/lib/display-name";
 import { checkRange, rangeMessages } from "@/lib/time-entry-rules";
 import { manualEntryInput, startTimerInput, timeEntryPatch } from "@/lib/schemas/time-entry";
 import { isUniqueViolation } from "./db-errors";
@@ -166,6 +167,73 @@ export function createTimeEntries(db: TenantDb, ctx: TenantContext, deps: Deps) 
     }
   }
 
+  type Patch = z.infer<typeof timeEntryPatch>;
+
+  /** Validates a patch against the current entry and returns the columns to write (and the new tag set, if any). */
+  async function planUpdate(current: Entry, data: Patch) {
+    const startedAt = data.startedAt ?? current.startedAt;
+    const endedAt = data.endedAt ?? current.endedAt;
+    if (data.startedAt || data.endedAt) assertRange(startedAt, endedAt);
+
+    const projectId = data.projectId !== undefined ? data.projectId : current.projectId;
+    const projectChanged = data.projectId !== undefined && data.projectId !== current.projectId;
+    const taskId = data.taskId !== undefined ? data.taskId : projectChanged ? null : current.taskId;
+    if (data.projectId !== undefined || data.taskId !== undefined) await assertRefs(projectId, taskId, current);
+    const tagIds = data.tagIds ? await assertTags(data.tagIds) : null;
+
+    return {
+      set: { description: data.description, isBillable: data.isBillable, startedAt: data.startedAt, endedAt: data.endedAt, projectId, taskId },
+      tagIds,
+    };
+  }
+
+  // ---- Admin corrections (ADR-030): same rules as editing one's own entry, plus an audit trail.
+
+  const requireAdmin = () => {
+    if (ctx.role !== "admin") throw new ForbiddenError("Only workspace admins can correct other people's entries");
+  };
+
+  /** Any entry of the workspace, by id; `deleted` picks live or removed ones. Other workspaces' ids are "not found". */
+  async function getInWorkspace(id: string, deleted: boolean): Promise<Entry> {
+    const [row] = await db
+      .select()
+      .from(timeEntries)
+      .where(and(eq(timeEntries.id, id), eq(timeEntries.workspaceId, ws), deleted ? isNotNull(timeEntries.deletedAt) : isNull(timeEntries.deletedAt)));
+    if (!row) throw new NotFoundError("Time entry");
+    return row;
+  }
+
+  const AUDITED_FIELDS = ["description", "projectId", "taskId", "startedAt", "endedAt", "isBillable", "deletedAt"] as const;
+  const plain = (v: unknown) => (v instanceof Date ? v.toISOString() : (v ?? null));
+
+  /** Field-by-field difference between an entry and the values about to be written; undefined values mean "unchanged". */
+  function diffChanges(before: Entry, after: Partial<Entry>, tagsBefore: string[], tagsAfter: string[] | null) {
+    const changes: Record<string, { from: unknown; to: unknown }> = {};
+    for (const field of AUDITED_FIELDS) {
+      const next = after[field];
+      if (next === undefined) continue;
+      if (JSON.stringify(plain(before[field])) !== JSON.stringify(plain(next))) changes[field] = { from: plain(before[field]), to: plain(next) };
+    }
+    if (tagsAfter && JSON.stringify([...tagsBefore].sort()) !== JSON.stringify([...tagsAfter].sort())) {
+      changes.tagIds = { from: [...tagsBefore].sort(), to: [...tagsAfter].sort() };
+    }
+    return changes;
+  }
+
+  /**
+   * Writes the audit row *before* the change and removes it if the change then fails: neon-http has no
+   * transactions, and a change without a trail is worse than a trail without a change.
+   */
+  async function audited<T>(entryId: string, action: "update" | "delete" | "restore", changes: Record<string, { from: unknown; to: unknown }>, apply: () => Promise<T>): Promise<T> {
+    const [log] = await db.insert(timeEntryAudit).values({ workspaceId: ws, timeEntryId: entryId, actorUserId: ctx.userId, action, changes }).returning({ id: timeEntryAudit.id });
+    try {
+      return await apply();
+    } catch (error) {
+      await db.delete(timeEntryAudit).where(eq(timeEntryAudit.id, log.id));
+      throw error;
+    }
+  }
+
   const repo = {
     runningTimer,
 
@@ -219,31 +287,10 @@ export function createTimeEntries(db: TenantDb, ctx: TenantContext, deps: Deps) 
     async update(id: string, patch: z.input<typeof timeEntryPatch>): Promise<TimeEntry> {
       const data = timeEntryPatch.parse(patch);
       const current = await getOwn(id);
-
-      const startedAt = data.startedAt ?? current.startedAt;
-      const endedAt = data.endedAt ?? current.endedAt;
-      if (data.startedAt || data.endedAt) assertRange(startedAt, endedAt);
-
-      const projectId = data.projectId !== undefined ? data.projectId : current.projectId;
-      const projectChanged = data.projectId !== undefined && data.projectId !== current.projectId;
-      const taskId = data.taskId !== undefined ? data.taskId : projectChanged ? null : current.taskId;
-      if (data.projectId !== undefined || data.taskId !== undefined) await assertRefs(projectId, taskId, current);
-      const tagIds = data.tagIds ? await assertTags(data.tagIds) : null;
-
-      const [row] = await db
-        .update(timeEntries)
-        .set({
-          description: data.description,
-          isBillable: data.isBillable,
-          startedAt: data.startedAt,
-          endedAt: data.endedAt,
-          projectId,
-          taskId,
-        })
-        .where(own(eq(timeEntries.id, id)))
-        .returning();
+      const plan = await planUpdate(current, data);
+      const [row] = await db.update(timeEntries).set(plan.set).where(own(eq(timeEntries.id, id))).returning();
       if (!row) throw new NotFoundError("Time entry");
-      if (tagIds) await setTags(id, tagIds);
+      if (plan.tagIds) await setTags(id, plan.tagIds);
       const [entry] = await withTags([row]);
       return entry;
     },
@@ -317,6 +364,87 @@ export function createTimeEntries(db: TenantDb, ctx: TenantContext, deps: Deps) 
         )
         .orderBy(desc(timeEntries.startedAt));
       return withTags(rows);
+    },
+
+    /**
+     * Admin corrections to *other people's* entries, each recorded in `time_entry_audit`. On an entry of the
+     * caller's own these behave like the normal methods (no trail: it is their own hours). Running timers of
+     * other people cannot be corrected: they must stop first.
+     */
+    correct: {
+      async update(id: string, patch: z.input<typeof timeEntryPatch>): Promise<TimeEntry> {
+        requireAdmin();
+        const current = await getInWorkspace(id, false);
+        if (current.userId === ctx.userId) return repo.update(id, patch);
+        if (!current.endedAt) throw new ValidationError({ form: "O timer desta pessoa ainda está em andamento." });
+        const plan = await planUpdate(current, timeEntryPatch.parse(patch));
+        const [before] = await withTags([current]);
+        const defined = Object.fromEntries(Object.entries(plan.set).filter(([, v]) => v !== undefined)) as Partial<Entry>;
+        const changes = diffChanges(current, defined, before.tagIds, plan.tagIds);
+        if (Object.keys(changes).length === 0) return before;
+        return audited(id, "update", changes, async () => {
+          const [row] = await db
+            .update(timeEntries)
+            .set(plan.set)
+            .where(and(eq(timeEntries.id, id), eq(timeEntries.workspaceId, ws), isNull(timeEntries.deletedAt)))
+            .returning();
+          if (!row) throw new NotFoundError("Time entry");
+          if (plan.tagIds) await setTags(id, plan.tagIds);
+          const [entry] = await withTags([row]);
+          return entry;
+        });
+      },
+
+      async softDelete(id: string): Promise<void> {
+        requireAdmin();
+        const current = await getInWorkspace(id, false);
+        if (current.userId === ctx.userId) return repo.softDelete(id);
+        if (!current.endedAt) throw new ValidationError({ form: "O timer desta pessoa ainda está em andamento." });
+        const at = deps.now();
+        await audited(id, "delete", { deletedAt: { from: null, to: at.toISOString() } }, async () => {
+          await db.update(timeEntries).set({ deletedAt: at }).where(and(eq(timeEntries.id, id), eq(timeEntries.workspaceId, ws), isNull(timeEntries.deletedAt)));
+        });
+      },
+
+      async restore(id: string): Promise<TimeEntry> {
+        requireAdmin();
+        const current = await getInWorkspace(id, true);
+        if (current.userId === ctx.userId) return repo.restore(id);
+        return audited(id, "restore", { deletedAt: { from: plain(current.deletedAt), to: null } }, async () => {
+          try {
+            const [row] = await db
+              .update(timeEntries)
+              .set({ deletedAt: null })
+              .where(and(eq(timeEntries.id, id), eq(timeEntries.workspaceId, ws), isNotNull(timeEntries.deletedAt)))
+              .returning();
+            const [entry] = await withTags([row]);
+            return entry;
+          } catch (error) {
+            if (isUniqueViolation(error)) throw new ConflictError("Essa pessoa já tem outro timer rodando; não é possível restaurar este.");
+            throw error;
+          }
+        });
+      },
+
+      /** Corrections made to an entry, newest first. */
+      async history(id: string) {
+        requireAdmin();
+        const rows = await db
+          .select({
+            id: timeEntryAudit.id,
+            action: timeEntryAudit.action,
+            changes: timeEntryAudit.changes,
+            createdAt: timeEntryAudit.createdAt,
+            actorName: users.name,
+            actorEmail: users.email,
+            actorDeletedAt: users.deletedAt,
+          })
+          .from(timeEntryAudit)
+          .innerJoin(users, eq(users.id, timeEntryAudit.actorUserId))
+          .where(and(eq(timeEntryAudit.workspaceId, ws), eq(timeEntryAudit.timeEntryId, id)))
+          .orderBy(desc(timeEntryAudit.createdAt));
+        return rows.map((r) => ({ id: r.id, action: r.action, changes: r.changes, createdAt: r.createdAt, actor: displayName({ name: r.actorName, email: r.actorEmail, deletedAt: r.actorDeletedAt }) }));
+      },
     },
 
     /** The caller's most recent distinct descriptions starting with `prefix` (autocomplete). */

@@ -70,6 +70,7 @@ describe("toExportRows", () => {
       startedAt: new Date("2026-02-03T02:30:00Z"), // 23:30 on Feb 2 in Recife
       endedAt: new Date("2026-02-03T03:30:00Z"),
       seconds: 3600,
+      corrected: false,
     };
     expect(toExportRows([r], "America/Recife")[0]).toMatchObject({ date: "2026-02-02", start: "23:30", endDate: "2026-02-03", end: "00:30", project: "Sem projeto", client: "", task: "" });
   });

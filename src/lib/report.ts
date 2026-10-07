@@ -13,6 +13,8 @@ export type ReportRow = {
   startedAt: Date;
   endedAt: Date;
   seconds: number;
+  /** An admin changed this entry after it was logged (ADR-030). */
+  corrected: boolean;
 };
 
 export type TaskTotal = { id: string | null; name: string; seconds: number; entries: number };

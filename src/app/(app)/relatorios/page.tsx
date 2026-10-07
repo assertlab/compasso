@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -10,7 +11,8 @@ import { formatTimeSpan } from "@/lib/report-export";
 import { toSearchParams } from "@/lib/schemas/report";
 import { formatHms, localDateString, localTimeString } from "@/lib/time";
 import { getTenant } from "@/server/get-tenant";
-import { loadCatalog } from "../views";
+import { EntryDialog } from "../entry-dialog";
+import { loadCatalog, reportRowToEntryView } from "../views";
 import { loadReport } from "./load-report";
 import { ReportFilters } from "./report-filters";
 
@@ -149,6 +151,7 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
                   <TableHead>Descrição</TableHead>
                   <TableHead>Início–fim</TableHead>
                   <TableHead className="text-right">Duração</TableHead>
+                  {isAdmin && <TableHead className="w-10" />}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -157,7 +160,14 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
                     <TableCell className="whitespace-nowrap">{formatDayLabel(localDateString(r.startedAt, tz))}</TableCell>
                     {showPerson && <TableCell>{r.userName}</TableCell>}
                     <TableCell>{[r.clientName, r.projectName, r.taskName].filter(Boolean).join(" / ") || "Sem projeto"}</TableCell>
-                    <TableCell className="max-w-xs truncate">{r.description || "—"}</TableCell>
+                    <TableCell className="max-w-xs truncate">
+                      {r.description || "—"}
+                      {r.corrected && (
+                        <Badge variant="outline" className="ml-2" title="Um administrador alterou este registro depois de lançado">
+                          corrigido
+                        </Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="whitespace-nowrap font-mono text-xs tabular-nums">
                       {formatTimeSpan({
                         date: localDateString(r.startedAt, tz),
@@ -167,6 +177,11 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
                       })}
                     </TableCell>
                     <TableCell className="text-right font-mono tabular-nums">{formatHms(r.seconds)}</TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        <EntryDialog catalog={catalog} entry={reportRowToEntryView(r, tz)} today={localDateString(new Date(), tz)} correctionOf={r.userName} />
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>

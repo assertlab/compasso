@@ -1,5 +1,6 @@
 import { entryDurationSeconds, localDateString, localTimeString } from "@/lib/time";
 import type { Tenant } from "@/server/tenant";
+import type { ReportRow } from "@/lib/report";
 import type { TimeEntry } from "@/server/time-entries";
 import type { CatalogView, EntryView } from "./types";
 
@@ -36,5 +37,24 @@ export function toEntryView(e: TimeEntry, timezone: string): EntryView {
     endTime: e.endedAt ? localTimeString(e.endedAt, timezone) : null,
     endDate: e.endedAt ? localDateString(e.endedAt, timezone) : null,
     durationSeconds: e.endedAt ? entryDurationSeconds(e.startedAt, e.endedAt) : null,
+  };
+}
+
+/** A finished report row as the edit dialog needs it. Tags and billing are not carried: corrections never touch them. */
+export function reportRowToEntryView(r: ReportRow, timezone: string): EntryView {
+  return {
+    id: r.id,
+    description: r.description,
+    projectId: r.projectId,
+    taskId: r.taskId,
+    tagIds: [],
+    isBillable: true,
+    startedAt: r.startedAt.toISOString(),
+    endedAt: r.endedAt.toISOString(),
+    date: localDateString(r.startedAt, timezone),
+    startTime: localTimeString(r.startedAt, timezone),
+    endTime: localTimeString(r.endedAt, timezone),
+    endDate: localDateString(r.endedAt, timezone),
+    durationSeconds: r.seconds,
   };
 }

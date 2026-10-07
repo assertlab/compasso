@@ -3,6 +3,7 @@ import {
   boolean,
   check,
   index,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -249,6 +250,32 @@ export const timeEntries = pgTable(
       t.startedAt,
     ),
   ],
+);
+
+/**
+ * Trail of corrections an admin makes to someone else's time entry (ADR-030): who changed what and when.
+ * `changes` maps a field to `{ from, to }` (instants as ISO strings). Written for every correction and never
+ * edited; it survives the removal of a member because users are anonymized, not deleted.
+ */
+export const timeEntryAudit = pgTable(
+  "time_entry_audit",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    timeEntryId: uuid("time_entry_id")
+      .notNull()
+      .references(() => timeEntries.id, { onDelete: "cascade" }),
+    actorUserId: uuid("actor_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    /** "update" | "delete" | "restore". */
+    action: text("action").notNull(),
+    changes: jsonb("changes").notNull().$type<Record<string, { from: unknown; to: unknown }>>(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("time_entry_audit_entry_idx").on(t.timeEntryId, t.createdAt), index("time_entry_audit_ws_idx").on(t.workspaceId)],
 );
 
 export const timeEntryTags = pgTable(

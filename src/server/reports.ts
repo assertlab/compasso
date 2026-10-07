@@ -1,5 +1,5 @@
-import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lt } from "drizzle-orm";
-import { organizations, projects, tasks, timeEntries, users, workspaceMembers } from "@/db/schema";
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
+import { organizations, projects, tasks, timeEntries, timeEntryAudit, users, workspaceMembers } from "@/db/schema";
 import { displayName } from "@/lib/display-name";
 import { entryDurationSeconds } from "@/lib/time";
 import type { ReportRow } from "@/lib/report";
@@ -83,6 +83,7 @@ export function createReports(db: TenantDb, ctx: TenantContext) {
             description: timeEntries.description,
             startedAt: timeEntries.startedAt,
             endedAt: timeEntries.endedAt,
+            corrected: sql<boolean>`exists (select 1 from ${timeEntryAudit} where ${timeEntryAudit.timeEntryId} = ${timeEntries.id})`,
           })
           .from(timeEntries)
           .innerJoin(users, eq(users.id, timeEntries.userId))
@@ -109,6 +110,7 @@ export function createReports(db: TenantDb, ctx: TenantContext) {
         startedAt: r.startedAt,
         endedAt: r.endedAt as Date,
         seconds: entryDurationSeconds(r.startedAt, r.endedAt),
+        corrected: r.corrected,
       }));
       return { rows, runningCount: running.length };
     },

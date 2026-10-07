@@ -30,6 +30,7 @@ async function mutate(work: (tenant: Tenant, timezone: string) => Promise<unknow
     return toFormErrors(toActionState(error));
   }
   revalidatePath("/");
+  revalidatePath("/relatorios");
   return { ok: true };
 }
 
@@ -85,6 +86,11 @@ export async function saveEntry(_prev: ActionState, formData: FormData): Promise
       isBillable: formData.get("isBillable") === "on",
       startedAt,
     };
+    // An admin fixing someone else's entry: recorded in the audit trail; tags and billing are left alone.
+    if (id && formData.get("correction") === "1") {
+      const { description, projectId, taskId, startedAt } = data;
+      return t.timeEntries.correct.update(id, { description, projectId, taskId, startedAt, endedAt });
+    }
     if (id) return t.timeEntries.update(id, { ...data, endedAt });
     return t.timeEntries.createManual({ ...data, endedAt: endedAt! });
   });
