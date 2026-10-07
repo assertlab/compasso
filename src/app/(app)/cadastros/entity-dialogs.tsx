@@ -29,9 +29,9 @@ const createTrigger = (label: string) => (
 export function OrganizationDialog({ organization }: { organization?: Organization }) {
   return (
     <EntityDialog
-      trigger={organization ? editTrigger(organization.name) : createTrigger("Nova organização")}
-      title={organization ? "Editar organização" : "Nova organização"}
-      description="Sua empresa ou um cliente. Agrupa projetos nos relatórios."
+      trigger={organization ? editTrigger(organization.name) : createTrigger("Novo cliente")}
+      title={organization ? "Editar cliente" : "Novo cliente"}
+      description="Quem recebe o trabalho (ou sua própria empresa). Agrupa projetos nos relatórios."
       action={saveOrganization}
       hidden={organization ? { id: organization.id } : undefined}
     >
@@ -51,10 +51,10 @@ export function ProjectDialog({ project, organizations }: { project?: Project; o
       {(errors) => (
         <>
           <div className="grid gap-1.5">
-            <Label htmlFor="organizationId">Organização</Label>
+            <Label htmlFor="organizationId">Cliente</Label>
             <Select name="organizationId" defaultValue={project?.organizationId} required>
               <SelectTrigger id="organizationId" aria-invalid={errors.organizationId ? true : undefined}>
-                <SelectValue placeholder="Escolha uma organização" />
+                <SelectValue placeholder="Escolha um cliente" />
               </SelectTrigger>
               <SelectContent>
                 {organizations.map((organization) => (

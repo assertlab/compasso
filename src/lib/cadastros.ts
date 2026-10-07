@@ -1,5 +1,5 @@
 export const TABS = [
-  { key: "organizacoes", label: "Organizações" },
+  { key: "clientes", label: "Clientes" },
   { key: "projetos", label: "Projetos" },
   { key: "tags", label: "Tags" },
 ] as const;

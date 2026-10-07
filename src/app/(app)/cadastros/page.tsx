@@ -28,7 +28,7 @@ async function Cadastros({ searchParams }: Pick<PageProps<"/cadastros">, "search
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Cadastros</h1>
         <p className="text-sm text-muted-foreground">
-          Organizações, projetos e tags do workspace {ctx.workspaceName}.
+          Clientes, projetos e tags do workspace {ctx.workspaceName}.
           {ctx.role !== "admin" && " Somente administradores podem alterar."}
         </p>
       </div>
@@ -49,7 +49,7 @@ async function Cadastros({ searchParams }: Pick<PageProps<"/cadastros">, "search
         ))}
       </nav>
 
-      {tab === "organizacoes" && <OrganizationsPanel {...panel} />}
+      {tab === "clientes" && <OrganizationsPanel {...panel} />}
       {tab === "projetos" && <ProjectsPanel {...panel} />}
       {tab === "tags" && <TagsPanel {...panel} />}
     </section>
