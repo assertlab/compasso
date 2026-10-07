@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { saveEntry } from "./actions";
 import { DescriptionInput } from "./description-input";
 import { EntityDialog } from "./cadastros/entity-dialog";
+import { EntryTimeFields } from "./entry-time-fields";
 import { ProjectTaskFields } from "./project-task-fields";
 import type { CatalogView, EntryView } from "./types";
 
@@ -55,7 +56,7 @@ export function EntryDialog({
         )
       }
       title={entry ? "Editar registro" : "Lançar horas"}
-      description={entry ? undefined : "Adicione um período que você já trabalhou. Se o fim for antes do início, conta como o dia seguinte."}
+      description={entry ? undefined : "Adicione um período que você já trabalhou. A data de término muda para o dia seguinte quando o fim é antes do início."}
       action={saveEntry}
       hidden={entry ? { id: entry.id } : undefined}
     >
@@ -66,31 +67,17 @@ export function EntryDialog({
             <DescriptionInput defaultValue={entry?.description} autoFocus />
           </div>
           <ProjectTaskFields catalog={catalog} defaultProjectId={entry?.projectId} defaultTaskId={entry?.taskId} errors={errors} />
-          <div className="grid grid-cols-3 gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="date">Data</Label>
-              <input id="date" name="date" type="date" required defaultValue={entry?.date ?? prefill?.date ?? today} className="h-9 rounded-md border border-input bg-background px-2 text-sm" />
-              {fieldError(errors.date)}
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="start">Início</Label>
-              <input id="start" name="start" type="time" required defaultValue={entry?.startTime ?? prefill?.start} className="h-9 rounded-md border border-input bg-background px-2 text-sm" />
-              {fieldError(errors.start)}
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="end">Fim</Label>
-              <input
-                id="end"
-                name="end"
-                type="time"
-                required={!running}
-                disabled={running}
-                defaultValue={entry?.endTime ?? prefill?.end}
-                className="h-9 rounded-md border border-input bg-background px-2 text-sm disabled:opacity-50"
-              />
-              {running ? <p className="text-xs text-muted-foreground">Em andamento</p> : fieldError(errors.end)}
-            </div>
-          </div>
+          <EntryTimeFields
+            defaults={{
+              date: entry?.date ?? prefill?.date ?? today,
+              start: entry?.startTime ?? prefill?.start ?? "",
+              end: entry?.endTime ?? prefill?.end ?? "",
+              endDate: entry?.endDate,
+              isExisting: entry !== undefined,
+            }}
+            running={running}
+            errors={errors}
+          />
           {catalog.tags.length > 0 && (
             <fieldset className="grid gap-1.5">
               <legend className="text-sm font-medium">Etiquetas</legend>

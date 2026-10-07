@@ -90,6 +90,7 @@ export function EntryList({ entries, catalog, today, currentWeek, loadMoreHref }
         <p className="font-mono tabular-nums">{entry.durationSeconds === null ? "em andamento" : formatHms(entry.durationSeconds)}</p>
         <p className="text-xs text-muted-foreground">
           {entry.startTime}–{entry.endTime ?? "…"}
+          {entry.endDate && entry.endDate !== entry.date ? " (+1)" : ""}
         </p>
       </div>
       <EntryDialog catalog={catalog} entry={entry} today={today} />
