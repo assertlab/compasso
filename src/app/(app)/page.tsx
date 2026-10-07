@@ -1,24 +1,40 @@
 import { Suspense } from "react";
-import { entryDurationSeconds, formatHms, localDateString, localTimeString, zonedDayRange } from "@/lib/time";
+import { weekStart } from "@/lib/entry-groups";
+import { addDays, entryDurationSeconds, localDateString, localTimeString, zonedDayRange, zonedMidnightUtc } from "@/lib/time";
 import { getTenant } from "@/server/get-tenant";
 import { EntryDialog } from "./entry-dialog";
 import { EntryList } from "./entry-list";
 import { TimerBar } from "./timer-bar";
 import type { CatalogView, EntryView } from "./types";
 
-export default function Home() {
+const DEFAULT_WEEKS = 2;
+const MAX_WEEKS = 26;
+
+/** `?semanas=N`: how many weeks of history the list shows (current week included). */
+function parseWeeks(value: string | string[] | undefined): number {
+  const n = Number(Array.isArray(value) ? value[0] : value);
+  return Number.isInteger(n) ? Math.min(Math.max(n, 1), MAX_WEEKS) : DEFAULT_WEEKS;
+}
+
+export default function Home({ searchParams }: PageProps<"/">) {
   return (
     <Suspense fallback={<div className="h-48 animate-pulse rounded-lg bg-muted" aria-hidden />}>
-      <Today />
+      <Today searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function Today() {
+async function Today({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
+  const weeks = parseWeeks((await searchParams).semanas);
   const { ctx, tenant } = await getTenant();
   const tz = ctx.timezone;
   const now = new Date();
   const today = localDateString(now, tz);
+  const currentWeek = weekStart(today);
+  const range = {
+    from: zonedMidnightUtc(addDays(currentWeek, -7 * (weeks - 1)), tz),
+    to: zonedDayRange(today, tz).to,
+  };
 
   const [organizations, projects, tasks, tags, running, entries] = await Promise.all([
     tenant.organizations.list({ includeArchived: true }),
@@ -26,7 +42,7 @@ async function Today() {
     tenant.tasks.listAll(),
     tenant.tags.list(),
     tenant.timeEntries.runningTimer(),
-    tenant.timeEntries.list(zonedDayRange(today, tz)),
+    tenant.timeEntries.list(range),
   ]);
 
   const catalog: CatalogView = {
@@ -50,7 +66,6 @@ async function Today() {
     endTime: e.endedAt ? localTimeString(e.endedAt, tz) : null,
     durationSeconds: e.endedAt ? entryDurationSeconds(e.startedAt, e.endedAt) : null,
   }));
-  const totalSeconds = views.reduce((sum, e) => sum + (e.durationSeconds ?? 0), 0);
 
   const current = running.here;
   const currentProject = current ? catalog.projects.find((p) => p.id === current.projectId) : undefined;
@@ -64,15 +79,10 @@ async function Today() {
         elsewhere={running.elsewhere ? { workspaceName: running.elsewhere.workspaceName, startedAt: running.elsewhere.startedAt.toISOString() } : null}
       />
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">Hoje</h1>
-          <p className="text-sm text-muted-foreground">
-            Total concluído: <span className="font-mono tabular-nums">{formatHms(totalSeconds)}</span>
-          </p>
-        </div>
+        <h1 className="text-xl font-semibold tracking-tight">Registros</h1>
         <EntryDialog catalog={catalog} today={today} />
       </div>
-      <EntryList entries={views} catalog={catalog} today={today} />
+      <EntryList entries={views} catalog={catalog} today={today} currentWeek={currentWeek} loadMoreHref={weeks < MAX_WEEKS ? `/?semanas=${weeks + 1}` : null} />
     </section>
   );
 }
