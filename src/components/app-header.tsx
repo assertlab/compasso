@@ -8,9 +8,16 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
       <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-3 px-4">
-        <Link href="/" aria-label="Compasso — início">
-          <Logo />
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/" aria-label="Compasso — início">
+            <Logo />
+          </Link>
+          <nav aria-label="Principal">
+            <Link href="/cadastros" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+              Cadastros
+            </Link>
+          </nav>
+        </div>
         <div className="flex items-center gap-2">
           {/* Clerk's widgets read the pathname on the client: keep them behind Suspense (Next 16 cacheComponents). */}
           <Suspense fallback={<div className="h-9 w-40 animate-pulse rounded-md bg-muted" aria-hidden />}>
