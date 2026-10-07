@@ -49,6 +49,12 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   /** IANA zone, e.g. "America/Recife". Drives UI/calendar rendering. */
   timezone: text("timezone").notNull().default("America/Recife"),
+  /**
+   * Logical deletion (LGPD): set when the Clerk user is deleted. The row is kept
+   * and anonymized (email/name/avatar cleared, clerk_id replaced) so historical
+   * time entries stay intact and attributable to "a removed user".
+   */
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -64,6 +70,8 @@ export const workspaces = pgTable("workspaces", {
    * use the timezone of the user generating them.
    */
   reportTimezone: text("report_timezone"),
+  /** Logical deletion: set when the Clerk organization is deleted. Data is retained, access is blocked. */
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -79,6 +87,8 @@ export const workspaceMembers = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     role: workspaceRole("role").notNull().default("member"),
+    /** Logical removal: the member lost access but their entries remain. Re-joining clears it. */
+    removedAt: timestamp("removed_at", { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
