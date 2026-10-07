@@ -163,7 +163,7 @@ export function createTimeEntries(db: TenantDb, ctx: TenantContext, deps: Deps) 
     }
   }
 
-  return {
+  const repo = {
     runningTimer,
 
     startTimer,
@@ -245,6 +245,21 @@ export function createTimeEntries(db: TenantDb, ctx: TenantContext, deps: Deps) 
       return entry;
     },
 
+    /** Shifts a finished entry by `shiftMinutes` (negative = earlier), keeping its exact duration. Running timers cannot be moved. */
+    async move(id: string, shiftMinutes: number): Promise<TimeEntry> {
+      const current = await getOwn(id);
+      if (!current.endedAt) throw new ValidationError({ form: "Pare o timer antes de mover o registro." });
+      const ms = Math.round(shiftMinutes) * 60_000;
+      return repo.update(id, { startedAt: new Date(current.startedAt.getTime() + ms), endedAt: new Date(current.endedAt.getTime() + ms) });
+    },
+
+    /** Moves one edge of a finished entry to `at`. The usual range rules apply (end after start, at most 24 h, not in the future). */
+    async resize(id: string, edge: "start" | "end", at: Date): Promise<TimeEntry> {
+      const current = await getOwn(id);
+      if (!current.endedAt) throw new ValidationError({ form: "Pare o timer antes de ajustar o registro." });
+      return repo.update(id, edge === "start" ? { startedAt: at } : { endedAt: at });
+    },
+
     async softDelete(id: string): Promise<void> {
       const [row] = await db
         .update(timeEntries)
@@ -314,4 +329,5 @@ export function createTimeEntries(db: TenantDb, ctx: TenantContext, deps: Deps) 
       return rows.map((r) => r.description);
     },
   };
+  return repo;
 }
