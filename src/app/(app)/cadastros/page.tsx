@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { parseTab, TABS } from "@/lib/cadastros";
+import { parseTab, tabsFor } from "@/lib/cadastros";
 import { cn } from "@/lib/utils";
 import { getTenant } from "@/server/get-tenant";
-import { OrganizationsPanel, ProjectsPanel, TagsPanel } from "./panels";
+import { MembersPanel, OrganizationsPanel, ProjectsPanel, TagsPanel } from "./panels";
 
 export const metadata: Metadata = { title: "Cadastros" };
 
@@ -18,10 +18,11 @@ export default function CadastrosPage({ searchParams }: PageProps<"/cadastros">)
 
 async function Cadastros({ searchParams }: Pick<PageProps<"/cadastros">, "searchParams">) {
   const params = await searchParams;
-  const tab = parseTab(params.aba);
   const includeArchived = params.arquivados === "1";
   const { ctx, tenant } = await getTenant();
-  const panel = { tenant, canEdit: ctx.role === "admin", includeArchived, basePath: `/cadastros?aba=${tab}` };
+  const isAdmin = ctx.role === "admin";
+  const tab = parseTab(params.aba, isAdmin);
+  const panel = { tenant, canEdit: isAdmin, includeArchived, basePath: `/cadastros?aba=${tab}` };
 
   return (
     <section className="flex flex-col gap-4">
@@ -34,7 +35,7 @@ async function Cadastros({ searchParams }: Pick<PageProps<"/cadastros">, "search
       </div>
 
       <nav aria-label="Cadastros" className="flex gap-1 border-b">
-        {TABS.map(({ key, label }) => (
+        {tabsFor(isAdmin).map(({ key, label }) => (
           <Link
             key={key}
             href={`/cadastros?aba=${key}`}
@@ -52,6 +53,7 @@ async function Cadastros({ searchParams }: Pick<PageProps<"/cadastros">, "search
       {tab === "clientes" && <OrganizationsPanel {...panel} />}
       {tab === "projetos" && <ProjectsPanel {...panel} />}
       {tab === "tags" && <TagsPanel {...panel} />}
+      {tab === "membros" && isAdmin && <MembersPanel tenant={tenant} />}
     </section>
   );
 }

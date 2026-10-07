@@ -174,4 +174,23 @@ describe("project participation (access model)", () => {
     }
     expect(rows).toHaveLength(projects.length * 3);
   });
+
+  describe("members overview", () => {
+    it("lists active members with their projects, and leaves out removed ones", async () => {
+      const overview = await tAdmin.projectMembers.overview();
+      const ids = overview.map((m) => m.userId);
+      expect(ids).toContain(ana.userId);
+      expect(ids).not.toContain(gone.userId);
+      const anaRow = overview.find((m) => m.userId === ana.userId);
+      expect(anaRow?.projects.map((p) => p.name)).toContain("Aberto");
+      expect(anaRow?.projects.map((p) => p.name)).not.toContain("Fechado");
+      expect(overview.find((m) => m.userId === bia.userId)?.projects).toEqual([]);
+    });
+
+    it("is admin-only and never shows another workspace's people", async () => {
+      await expect(tAna.projectMembers.overview()).rejects.toBeInstanceOf(ForbiddenError);
+      const foreign = await tOther.projectMembers.overview();
+      expect(foreign.map((m) => m.userId)).not.toContain(ana.userId);
+    });
+  });
 });

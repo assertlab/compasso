@@ -146,3 +146,47 @@ export async function TagsPanel({ tenant, canEdit, includeArchived, basePath }: 
     </div>
   );
 }
+
+export async function MembersPanel({ tenant }: { tenant: Tenant }) {
+  const members = await tenant.projectMembers.overview();
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-sm text-muted-foreground">
+        Pessoas do laboratório e os projetos em que participam. Convites e papéis (admin/membro) são geridos no seletor de organização, no topo; a participação
+        em projetos é ajustada na página de cada projeto.
+      </p>
+      <List>
+        {members.map((member) => {
+          const active = member.projects.filter((project) => !project.isArchived);
+          return (
+            <Row key={member.userId}>
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium">
+                  {member.name}
+                  {member.role === "admin" && <span className="ml-2 text-xs font-normal text-muted-foreground">admin</span>}
+                </p>
+                <p className="truncate text-sm text-muted-foreground">{member.email}</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5 sm:max-w-[55%] sm:justify-end">
+                {member.role === "admin" ? (
+                  <Badge variant="outline">Todos os projetos</Badge>
+                ) : active.length === 0 ? (
+                  <Badge variant="outline">Sem projetos: não consegue lançar horas</Badge>
+                ) : (
+                  active.map((project) => (
+                    <Link key={project.id} href={`/cadastros/projetos/${project.id}`} title={project.clientName}>
+                      <Badge variant="outline">
+                        <span className="mr-1.5 size-2 rounded-full" style={{ backgroundColor: project.color }} aria-hidden />
+                        {project.name}
+                      </Badge>
+                    </Link>
+                  ))
+                )}
+              </div>
+            </Row>
+          );
+        })}
+      </List>
+    </div>
+  );
+}
