@@ -49,7 +49,7 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
     for (const id of query.pessoas) params.append("pessoas", id);
     return `/relatorios?${params}`;
   })();
-  const panelHref = `/painel?${toSearchParams({ ...query, cliente: undefined, projeto: undefined, tarefa: undefined, agrupar: undefined })}`;
+  const panelHref = `/painel?${toSearchParams(query)}`;
   const summary = summarize(result.rows, query.agrupar);
   const dayMatrix = buildDayMatrix(result.rows, period, tz, { includePeople: isAdmin });
   const showPerson = isAdmin;

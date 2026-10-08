@@ -20,11 +20,16 @@ export function ReportFilters({
   catalog,
   people,
   query,
+  action = "/relatorios",
+  submitLabel = "Gerar relatório",
 }: {
   catalog: CatalogView;
   /** Null for members: they only ever see their own hours, so there is nothing to pick. */
   people: PersonOption[] | null;
   query: ReportQuery;
+  /** Page the form submits to; the dashboard reuses these filters. */
+  action?: "/relatorios" | "/painel";
+  submitLabel?: string;
 }) {
   const [period, setPeriod] = useState<PeriodPreset>(query.periodo);
   const [clientId, setClientId] = useState(query.cliente ?? "");
@@ -37,7 +42,7 @@ export function ReportFilters({
   const tasks = catalog.tasks.filter((t) => t.projectId === projectId);
 
   return (
-    <form method="get" action="/relatorios" className="grid gap-3 rounded-lg border p-4 sm:grid-cols-2 lg:grid-cols-4">
+    <form method="get" action={action} className="grid gap-3 rounded-lg border p-4 sm:grid-cols-2 lg:grid-cols-4">
       <label className="grid gap-1.5 text-sm font-medium">
         Período
         <select name="periodo" className={selectClass} value={period} onChange={(e) => setPeriod(e.target.value as PeriodPreset)}>
@@ -169,9 +174,9 @@ export function ReportFilters({
       )}
 
       <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-4">
-        <Button type="submit">Gerar relatório</Button>
+        <Button type="submit">{submitLabel}</Button>
         <Button asChild variant="ghost">
-          <Link href="/relatorios">Limpar</Link>
+          <Link href={action}>Limpar</Link>
         </Button>
       </div>
     </form>

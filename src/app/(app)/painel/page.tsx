@@ -10,9 +10,10 @@ import { buildDayMatrix } from "@/lib/report-days";
 import { toSearchParams } from "@/lib/schemas/report";
 import { formatHms } from "@/lib/time";
 import { getTenant } from "@/server/get-tenant";
+import { loadCatalog } from "../views";
 import { ReportChartsSection } from "../relatorios/charts";
 import { loadReport } from "../relatorios/load-report";
-import { PanelFilters } from "./panel-filters";
+import { ReportFilters } from "../relatorios/report-filters";
 
 export const metadata: Metadata = { title: "Painel" };
 
@@ -26,15 +27,15 @@ export default function PanelPage({ searchParams }: PageProps<"/painel">) {
 
 async function Panel({ searchParams }: Pick<PageProps<"/painel">, "searchParams">) {
   const { ctx, tenant } = await getTenant();
-  const report = await loadReport(tenant, ctx, await searchParams);
+  const [catalog, report] = await Promise.all([loadCatalog(tenant), loadReport(tenant, ctx, await searchParams)]);
   const { query, period, isAdmin } = report;
 
-  const summary = summarize(report.rows, "descricao");
+  const summary = summarize(report.rows, query.agrupar);
   const matrix = buildDayMatrix(report.rows, period, ctx.timezone, { includePeople: false });
   const charts = buildCharts(summary, matrix);
   const h = buildHighlights(report.rows, summary, ctx.timezone);
-  // The same period and people, opened in the full report (filters by client/project live there).
-  const reportHref = `/relatorios?${toSearchParams({ ...query, cliente: undefined, projeto: undefined, tarefa: undefined, agrupar: undefined })}`;
+  // The same filters, opened in the full report.
+  const reportHref = `/relatorios?${toSearchParams(query)}`;
 
   return (
     <section className="flex flex-col gap-4">
@@ -51,7 +52,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/painel">, "searchParams"
         </Button>
       </div>
 
-      <PanelFilters people={report.people} query={query} />
+      <ReportFilters catalog={catalog} people={report.people} query={query} action="/painel" submitLabel="Atualizar painel" />
 
       {report.periodError && (
         <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
@@ -80,7 +81,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/painel">, "searchParams"
             />
           </div>
 
-          <ReportChartsSection charts={charts} activityTitle="Principais descrições" showPeople={isAdmin} />
+          <ReportChartsSection charts={charts} activityTitle={`Principais ${summary.groupBy === "tarefa" ? "tarefas" : "descrições"}`} showPeople={isAdmin} />
         </>
       )}
     </section>
