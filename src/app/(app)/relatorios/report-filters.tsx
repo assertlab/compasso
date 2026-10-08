@@ -127,7 +127,8 @@ export function ReportFilters({
 
       <label className="grid gap-1.5 text-sm font-medium">
         Agrupar por
-        <select name="agrupar" className={selectClass} defaultValue={query.agrupar ?? DEFAULT_GROUP_BY}>
+        {/* A view option, not a filter: applies at once so the screen, the export links and the downloads never disagree. */}
+        <select name="agrupar" className={selectClass} defaultValue={query.agrupar ?? DEFAULT_GROUP_BY} onChange={(e) => e.currentTarget.form?.requestSubmit()}>
           {GROUP_BY.map((g) => (
             <option key={g} value={g}>
               {GROUP_LABELS[g]}
