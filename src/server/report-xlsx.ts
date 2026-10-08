@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 import type { ExportRow } from "@/lib/report-export";
-import type { ReportSummary } from "@/lib/report";
+import { GROUP_LABELS, type ReportSummary } from "@/lib/report";
 
 const DAY = 86_400;
 const FMT_DURATION = "[h]:mm:ss";
@@ -51,7 +51,7 @@ export async function buildXlsx(input: {
   r++;
 
   const header = sum.getRow(r++);
-  header.values = ["Cliente / projeto / tarefa", "Registros", "Duração", "Horas"];
+  header.values = [`Cliente / projeto / ${GROUP_LABELS[input.summary.groupBy].toLowerCase()}`, "Registros", "Duração", "Horas"];
   styleHeader(header);
   header.getCell(2).alignment = header.getCell(3).alignment = header.getCell(4).alignment = { horizontal: "right" };
 
@@ -74,7 +74,7 @@ export async function buildXlsx(input: {
     if (c.id === null) continue;
     for (const p of c.projects) {
       line(p.name, p.seconds, p.entries, 1, false);
-      for (const t of p.tasks) line(t.name, t.seconds, t.entries, 2, false).font = { color: { argb: "FF555555" } };
+      for (const t of p.items) line(t.name, t.seconds, t.entries, 2, false).font = { color: { argb: "FF555555" } };
     }
   }
   const total = line("Total", input.summary.totalSeconds, input.summary.totalEntries, 0, true);

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDayLabel } from "@/lib/entry-groups";
-import { summarize } from "@/lib/report";
+import { GROUP_LABELS, summarize } from "@/lib/report";
 import { formatTimeSpan } from "@/lib/report-export";
 import { toSearchParams } from "@/lib/schemas/report";
 import { formatHms, localDateString, localTimeString } from "@/lib/time";
@@ -47,7 +47,7 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
     for (const id of query.pessoas) params.append("pessoas", id);
     return `/relatorios?${params}`;
   })();
-  const summary = summarize(result.rows);
+  const summary = summarize(result.rows, query.agrupar);
   const showPerson = isAdmin;
 
   return (
@@ -109,7 +109,7 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Por cliente, projeto e tarefa</CardTitle>
+              <CardTitle className="text-base">Por cliente, projeto e {GROUP_LABELS[summary.groupBy].toLowerCase()}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4">
               {summary.clients.map((c) => (
@@ -119,7 +119,7 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
                     <div key={p.id ?? "none"} className="ml-4 grid gap-0.5">
                       {c.id !== null && <Line label={p.name} seconds={p.seconds} entries={p.entries} />}
                       {c.id !== null &&
-                        p.tasks.map((t) => (
+                        p.items.map((t) => (
                           <div key={t.id ?? "none"} className="ml-4">
                             <Line muted label={t.name} seconds={t.seconds} entries={t.entries} />
                           </div>

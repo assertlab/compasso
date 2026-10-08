@@ -28,6 +28,13 @@ describe("parseReportQuery", () => {
     expect(parseReportQuery({ pessoas: `${U1},${U2}` }).pessoas).toEqual([U1, U2]);
   });
 
+  it("reads the grouping and ignores unknown values", () => {
+    expect(parseReportQuery({ agrupar: "tarefa" }).agrupar).toBe("tarefa");
+    expect(parseReportQuery({ agrupar: "descricao" }).agrupar).toBe("descricao");
+    expect(parseReportQuery({ agrupar: "x" }).agrupar).toBeUndefined();
+    expect(toSearchParams(parseReportQuery({ agrupar: "tarefa" })).get("agrupar")).toBe("tarefa");
+  });
+
   it("round-trips through the URL", () => {
     const q = parseReportQuery({ periodo: "custom", de: "2026-02-01", ate: "2026-02-28", cliente: U1, projeto: "none", pessoas: [U1, U2] });
     const params = toSearchParams(q);

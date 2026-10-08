@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DEFAULT_GROUP_BY, GROUP_BY, GROUP_LABELS } from "@/lib/report";
 import { PERIOD_LABELS, PERIOD_PRESETS, type PeriodPreset } from "@/lib/report-period";
 import type { ReportQuery } from "@/lib/schemas/report";
 import { selectClass } from "../project-task-fields";
@@ -119,6 +120,17 @@ export function ReportFilters({
             <option key={t.id} value={t.id}>
               {t.name}
               {t.isCompleted ? " (concluída)" : ""}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="grid gap-1.5 text-sm font-medium">
+        Agrupar por
+        <select name="agrupar" className={selectClass} defaultValue={query.agrupar ?? DEFAULT_GROUP_BY}>
+          {GROUP_BY.map((g) => (
+            <option key={g} value={g}>
+              {GROUP_LABELS[g]}
             </option>
           ))}
         </select>

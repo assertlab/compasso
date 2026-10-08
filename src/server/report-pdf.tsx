@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { Document, Font, Image, Page, renderToBuffer, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { type ExportRow, formatDateBr, formatTimeSpan } from "@/lib/report-export";
-import type { ReportSummary } from "@/lib/report";
+import { GROUP_LABELS, type ReportSummary } from "@/lib/report";
 import { formatHms, toDecimalHours } from "@/lib/time";
 
 const FONT = "Plex";
@@ -138,7 +138,7 @@ function ReportDocument({ period, filters, generatedAt, includePerson, summary, 
           </View>
         </View>
 
-        <SummaryHeader first="Cliente / projeto / tarefa" />
+        <SummaryHeader first={`Cliente / projeto / ${GROUP_LABELS[summary.groupBy].toLowerCase()}`} />
         {summary.clients.map((client) => (
           <View key={client.id ?? "none"}>
             <SummaryRow label={client.name} entries={client.entries} seconds={client.seconds} indent={0} bold />
@@ -146,7 +146,7 @@ function ReportDocument({ period, filters, generatedAt, includePerson, summary, 
               client.projects.map((project) => (
                 <View key={project.id ?? "none"}>
                   <SummaryRow label={project.name} entries={project.entries} seconds={project.seconds} indent={1} />
-                  {project.tasks.map((task) => (
+                  {project.items.map((task) => (
                     <SummaryRow key={task.id ?? "none"} label={task.name} entries={task.entries} seconds={task.seconds} indent={2} />
                   ))}
                 </View>
