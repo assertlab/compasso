@@ -138,6 +138,38 @@ describe("time entries", () => {
       await tA.projects.update(projA.id, { isArchived: false });
     });
 
+    it("duplicates a finished entry with the same times, project, task, tags and billing flag", async () => {
+      const source = await tA.timeEntries.createManual({
+        description: "revisão",
+        projectId: projA.id,
+        taskId: taskA.id,
+        tagIds: [tagA.id],
+        isBillable: false,
+        startedAt: "2026-02-27T09:00:00Z",
+        endedAt: "2026-02-27T10:30:00Z",
+      });
+      const copy = await tA.timeEntries.duplicate(source.id);
+      expect(copy).toMatchObject({
+        id: expect.not.stringMatching(source.id),
+        description: "revisão",
+        projectId: projA.id,
+        taskId: taskA.id,
+        tagIds: [tagA.id],
+        isBillable: false,
+        startedAt: source.startedAt,
+        endedAt: source.endedAt,
+      });
+      const day = await tA.timeEntries.list({ from: iso("2026-02-27T00:00:00Z"), to: iso("2026-02-28T00:00:00Z") });
+      expect(day.filter((e) => e.description === "revisão")).toHaveLength(2);
+    });
+
+    it("cannot duplicate a running timer or someone else's entry", async () => {
+      const running = await tA.timeEntries.startTimer({ description: "em andamento" });
+      await expect(tA.timeEntries.duplicate(running.id)).rejects.toBeInstanceOf(ValidationError);
+      const theirs = await tMember.timeEntries.createManual({ startedAt: "2026-02-27T09:00:00Z", endedAt: "2026-02-27T10:00:00Z" });
+      await expect(tA.timeEntries.duplicate(theirs.id)).rejects.toBeInstanceOf(NotFoundError);
+    });
+
     it("different users may run timers at the same time", async () => {
       await tA.timeEntries.startTimer({});
       await expect(tMember.timeEntries.startTimer({})).resolves.toBeDefined();

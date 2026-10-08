@@ -1,13 +1,13 @@
 "use client";
 
-import { ChevronDown, ChevronRight, Play, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Copy, Play, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDayLabel, formatWeekLabel, groupEntries } from "@/lib/entry-groups";
 import { formatHms } from "@/lib/time";
-import { deleteEntryAction, restoreEntryAction, resumeEntryAction } from "./actions";
+import { deleteEntryAction, duplicateEntryAction, restoreEntryAction, resumeEntryAction } from "./actions";
 import { EntryDialog } from "./entry-dialog";
 import type { CatalogView, EntryView } from "./types";
 
@@ -46,6 +46,7 @@ export function EntryList({ entries, catalog, today, currentWeek, loadMoreHref }
     run(() => deleteEntryAction(entry.id), "Não foi possível remover.", () => setRemoved({ id: entry.id, label: entry.description || "Registro sem descrição" }));
   const undo = (id: string) => run(() => restoreEntryAction(id), "Não foi possível desfazer.", () => setRemoved(null));
   const resume = (entry: EntryView) => run(() => resumeEntryAction(entry.id), "Não foi possível iniciar.");
+  const duplicate = (entry: EntryView) => run(() => duplicateEntryAction(entry.id), "Não foi possível duplicar.");
   const toggle = (key: string) =>
     setExpanded((current) => {
       const next = new Set(current);
@@ -94,6 +95,13 @@ export function EntryList({ entries, catalog, today, currentWeek, loadMoreHref }
         </p>
       </div>
       <EntryDialog catalog={catalog} entry={entry} today={today} />
+      {entry.endedAt !== null ? (
+        <Button variant="ghost" size="icon" aria-label="Duplicar registro" title="Duplicar registro" disabled={pending} onClick={() => duplicate(entry)}>
+          <Copy aria-hidden />
+        </Button>
+      ) : (
+        <span className="size-9 shrink-0" aria-hidden />
+      )}
       <Button variant="ghost" size="icon" aria-label="Remover registro" disabled={pending} onClick={() => remove(entry)}>
         <Trash2 aria-hidden />
       </Button>
@@ -168,7 +176,7 @@ export function EntryList({ entries, catalog, today, currentWeek, loadMoreHref }
                               <p className="font-mono tabular-nums">{formatHms(group.totalSeconds)}</p>
                               {running && <p className="text-xs text-muted-foreground">+ em andamento</p>}
                             </div>
-                            <span className="w-[4.5rem] shrink-0" aria-hidden />
+                            <span className="w-[6.75rem] shrink-0" aria-hidden />
                           </li>
                           {open && group.entries.map((entry) => entryRow(entry, true))}
                         </ul>
