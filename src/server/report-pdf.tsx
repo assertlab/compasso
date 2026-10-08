@@ -46,6 +46,10 @@ const s = StyleSheet.create({
   th: { flexDirection: "row", paddingVertical: 3, backgroundColor: NAVY },
   thText: { color: "#fff", fontWeight: 700 },
   num: { textAlign: "right" },
+  // Full grid for the entry table: outer edges on each row (rows can split across pages) and a rule between columns.
+  gridEdge: { borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: LINE },
+  cell: { paddingHorizontal: 4, paddingVertical: 2.5, borderRightWidth: 0.5, borderColor: LINE },
+  hcell: { paddingHorizontal: 4, borderRightWidth: 0.5, borderColor: "#3d6079" },
   footer: { position: "absolute", bottom: 20, left: 36, right: 36, flexDirection: "row", justifyContent: "space-between", fontSize: 8, color: MUTED },
 });
 
@@ -170,30 +174,30 @@ function ReportDocument({ period, filters, generatedAt, includePerson, summary, 
       {rows.length > 0 && (
         <Page size="A4" orientation="landscape" style={s.page}>
           <Banner title="Registros" subtitle={`Período: ${period}`} />
-          <View style={[s.th, { marginTop: 8 }]} fixed>
-            <Text style={[s.thText, { width: 80, paddingLeft: 4 }]}>Início</Text>
-            {includePerson && <Text style={[s.thText, { width: 80 }]}>Pessoa</Text>}
-            <Text style={[s.thText, { width: 150 }]}>Cliente / projeto</Text>
-            <Text style={[s.thText, { width: 110 }]}>Tarefa</Text>
-            <Text style={[s.thText, { flex: 1 }]}>Descrição</Text>
-            <Text style={[s.thText, s.num, { width: 56 }]}>Duração</Text>
-            <Text style={[s.thText, s.num, { width: 40, paddingRight: 4 }]}>Horas</Text>
+          <View style={[s.th, s.gridEdge, { marginTop: 8 }]} fixed>
+            <Text style={[s.thText, s.hcell, { width: 80 }]}>Início</Text>
+            {includePerson && <Text style={[s.thText, s.hcell, { width: 80 }]}>Pessoa</Text>}
+            <Text style={[s.thText, s.hcell, { width: 150 }]}>Cliente / projeto</Text>
+            <Text style={[s.thText, s.hcell, { width: 110 }]}>Tarefa</Text>
+            <Text style={[s.thText, s.hcell, { flex: 1 }]}>Descrição</Text>
+            <Text style={[s.thText, s.hcell, s.num, { width: 56 }]}>Duração</Text>
+            <Text style={[s.thText, s.num, { width: 40, paddingHorizontal: 4 }]}>Horas</Text>
           </View>
           {rows.map((e, i) => (
-            <View key={i} style={s.row} wrap={false}>
-              <View style={{ width: 80 }}>
+            <View key={i} style={[s.row, s.gridEdge, { paddingVertical: 0 }]} wrap={false}>
+              <View style={[s.cell, { width: 80 }]}>
                 <Text>{formatDateBr(e.date).slice(0, 5)}</Text>
                 <Text style={s.muted}>{formatTimeSpan(e)}</Text>
               </View>
-              {includePerson && <Text style={{ width: 80 }}>{e.person}</Text>}
-              <View style={{ width: 150 }}>
+              {includePerson && <Text style={[s.cell, { width: 80 }]}>{e.person}</Text>}
+              <View style={[s.cell, { width: 150 }]}>
                 <Text>{e.project}</Text>
                 {e.client !== "" && <Text style={s.muted}>{e.client}</Text>}
               </View>
-              <Text style={{ width: 110 }}>{e.task}</Text>
-              <Text style={{ flex: 1 }}>{e.description}</Text>
-              <Text style={[s.num, { width: 56 }]}>{formatHms(e.seconds)}</Text>
-              <Text style={[s.num, { width: 40 }]}>{hours(e.seconds)}</Text>
+              <Text style={[s.cell, { width: 110 }]}>{e.task}</Text>
+              <Text style={[s.cell, { flex: 1 }]}>{e.description}</Text>
+              <Text style={[s.cell, s.num, { width: 56 }]}>{formatHms(e.seconds)}</Text>
+              <Text style={[s.num, { width: 40, paddingHorizontal: 4, paddingVertical: 2.5 }]}>{hours(e.seconds)}</Text>
             </View>
           ))}
           <Footer generatedAt={stamp} />
