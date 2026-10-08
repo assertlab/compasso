@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDayLabel } from "@/lib/entry-groups";
 import { GROUP_LABELS, summarize } from "@/lib/report";
-import { buildCharts } from "@/lib/report-charts";
 import { buildDayMatrix } from "@/lib/report-days";
 import { formatTimeSpan } from "@/lib/report-export";
 import { toSearchParams } from "@/lib/schemas/report";
@@ -15,7 +14,6 @@ import { formatHms, localDateString, localTimeString } from "@/lib/time";
 import { getTenant } from "@/server/get-tenant";
 import { EntryDialog } from "../entry-dialog";
 import { loadCatalog, reportRowToEntryView } from "../views";
-import { ReportChartsSection } from "./charts";
 import { DayMatrixCard } from "./day-matrix";
 import { loadReport } from "./load-report";
 import { ReportFilters } from "./report-filters";
@@ -51,9 +49,9 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
     for (const id of query.pessoas) params.append("pessoas", id);
     return `/relatorios?${params}`;
   })();
+  const panelHref = `/painel?${toSearchParams({ ...query, cliente: undefined, projeto: undefined, tarefa: undefined, agrupar: undefined })}`;
   const summary = summarize(result.rows, query.agrupar);
   const dayMatrix = buildDayMatrix(result.rows, period, tz, { includePeople: isAdmin });
-  const charts = buildCharts(summary, dayMatrix);
   const showPerson = isAdmin;
 
   return (
@@ -95,6 +93,9 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
       ) : (
         <>
           <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button asChild variant="ghost" size="sm" className="mr-auto">
+              <Link href={panelHref}>Ver gráficos no painel</Link>
+            </Button>
             {/* Plain anchors: a download, not a navigation (no prefetch, no client routing). */}
             <Button asChild variant="outline" size="sm">
               <a href={exportHref("xlsx")}>Baixar XLSX</a>
@@ -112,8 +113,6 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
             <Stat label="Registros" value={String(summary.totalEntries)} />
             <Stat label={showPerson ? "Pessoas" : "Clientes"} value={String(showPerson ? summary.people.length : summary.clients.length)} />
           </div>
-
-          <ReportChartsSection charts={charts} activityTitle={`Principais ${summary.groupBy === "tarefa" ? "tarefas" : "descrições"}`} showPeople={showPerson} />
 
           <Card>
             <CardHeader>
@@ -140,6 +139,19 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
           </Card>
 
           <DayMatrixCard matrix={dayMatrix} />
+
+          {showPerson && summary.people.length > 1 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Por pessoa</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-1">
+                {summary.people.map((p) => (
+                  <Line key={p.id} label={p.name} seconds={p.seconds} entries={p.entries} />
+                ))}
+              </CardContent>
+            </Card>
+          )}
 
           <div className="overflow-x-auto rounded-lg border">
             <Table>
