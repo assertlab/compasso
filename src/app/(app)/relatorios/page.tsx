@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDayLabel } from "@/lib/entry-groups";
 import { GROUP_LABELS, summarize } from "@/lib/report";
+import { buildCharts } from "@/lib/report-charts";
 import { buildDayMatrix } from "@/lib/report-days";
 import { formatTimeSpan } from "@/lib/report-export";
 import { toSearchParams } from "@/lib/schemas/report";
@@ -14,6 +15,7 @@ import { formatHms, localDateString, localTimeString } from "@/lib/time";
 import { getTenant } from "@/server/get-tenant";
 import { EntryDialog } from "../entry-dialog";
 import { loadCatalog, reportRowToEntryView } from "../views";
+import { ReportChartsSection } from "./charts";
 import { DayMatrixCard } from "./day-matrix";
 import { loadReport } from "./load-report";
 import { ReportFilters } from "./report-filters";
@@ -51,6 +53,7 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
   })();
   const summary = summarize(result.rows, query.agrupar);
   const dayMatrix = buildDayMatrix(result.rows, period, tz, { includePeople: isAdmin });
+  const charts = buildCharts(summary, dayMatrix);
   const showPerson = isAdmin;
 
   return (
@@ -110,6 +113,8 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
             <Stat label={showPerson ? "Pessoas" : "Clientes"} value={String(showPerson ? summary.people.length : summary.clients.length)} />
           </div>
 
+          <ReportChartsSection charts={charts} activityTitle={`Principais ${summary.groupBy === "tarefa" ? "tarefas" : "descrições"}`} showPeople={showPerson} />
+
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Por cliente, projeto e {GROUP_LABELS[summary.groupBy].toLowerCase()}</CardTitle>
@@ -135,19 +140,6 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
           </Card>
 
           <DayMatrixCard matrix={dayMatrix} />
-
-          {showPerson && summary.people.length > 1 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Por pessoa</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-1">
-                {summary.people.map((p) => (
-                  <Line key={p.id} label={p.name} seconds={p.seconds} entries={p.entries} />
-                ))}
-              </CardContent>
-            </Card>
-          )}
 
           <div className="overflow-x-auto rounded-lg border">
             <Table>

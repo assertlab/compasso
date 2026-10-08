@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { Document, Font, Image, Page, renderToBuffer, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { type ExportRow, formatDateBr, formatTimeSpan } from "@/lib/report-export";
+import { axisTicks, buildCharts, formatAxisHours, formatPercent, OTHERS_ID, type ReportCharts, type ShareItem } from "@/lib/report-charts";
 import { type DayMatrix, formatHm } from "@/lib/report-days";
 import { GROUP_LABELS, type ReportSummary } from "@/lib/report";
 import { formatHms, toDecimalHours } from "@/lib/time";
@@ -31,6 +32,10 @@ const NAVY = "#0e2e47";
 const MUTED = "#5b6770";
 const LINE = "#d5dbe0";
 const GRID = "#b4bfc8";
+// Chart marks: the brand steel blue, a quiet gray for "Outros", a light track. Red is never used (ADR-016).
+const BAR = "#1b6489";
+const BAR_OTHERS = "#94a9bb";
+const TRACK = "#e8eef3";
 
 const s = StyleSheet.create({
   page: { paddingTop: 36, paddingBottom: 44, paddingHorizontal: 36, fontSize: 9, color: "#111", fontFamily: family },
@@ -155,6 +160,78 @@ function DayGrid({ matrix }: { matrix: DayMatrix }) {
   );
 }
 
+const PLOT_H = 110;
+const AXIS_W = 30;
+
+/** Columns per day (or week) on a 0-based hour axis; real Views, so the PDF stays vector and selectable. */
+function BarsChart({ charts }: { charts: ReportCharts }) {
+  const ticks = axisTicks(charts.barMax);
+  const top = ticks[ticks.length - 1] || 1;
+  const every = Math.ceil(charts.bars.length / 12);
+  return (
+    <View wrap={false}>
+      <Text style={s.h2}>Horas por {charts.granularity === "dia" ? "dia" : "semana"}</Text>
+      <View style={{ flexDirection: "row", marginTop: 8 }}>
+        <View style={{ width: AXIS_W, height: PLOT_H }}>
+          {ticks.map((t) => (
+            <Text key={t} style={{ position: "absolute", right: 4, bottom: (t / top) * PLOT_H - 4, fontSize: 7, color: MUTED }}>
+              {formatAxisHours(t)}
+            </Text>
+          ))}
+        </View>
+        <View style={{ flex: 1, height: PLOT_H }}>
+          {ticks.map((t) => (
+            <View key={t} style={{ position: "absolute", left: 0, right: 0, bottom: (t / top) * PLOT_H, borderTopWidth: 0.5, borderColor: LINE }} />
+          ))}
+          <View style={{ flexDirection: "row", alignItems: "flex-end", height: PLOT_H }}>
+            {charts.bars.map((b) => (
+              <View key={b.key} style={{ flex: 1, height: PLOT_H, alignItems: "center", justifyContent: "flex-end" }}>
+                {b.seconds > 0 && (
+                  <View style={{ width: "70%", maxWidth: 16, height: Math.max(1, (b.seconds / top) * PLOT_H), backgroundColor: BAR, borderTopLeftRadius: 3, borderTopRightRadius: 3 }} />
+                )}
+              </View>
+            ))}
+          </View>
+        </View>
+      </View>
+      <View style={{ flexDirection: "row", marginLeft: AXIS_W, marginTop: 3 }}>
+        {charts.bars.map((b, i) => (
+          <View key={b.key} style={{ flex: 1, alignItems: "center" }}>
+            {/* Wider than the column but with negative margins, so the label never wraps or pushes its neighbours. */}
+            {i % every === 0 && <Text style={{ width: 40, marginHorizontal: -20, textAlign: "center", fontSize: 6.5, color: MUTED }}>{b.label}</Text>}
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** Ranked horizontal bars: label and "hh:mm:ss · %" above a thin track (length relative to the largest item). */
+function SharesChart({ title, items }: { title: string; items: ShareItem[] }) {
+  const max = Math.max(1, ...items.map((i) => i.seconds));
+  return (
+    <View wrap={false}>
+      <Text style={s.h2}>{title}</Text>
+      {items.map((i) => (
+        <View key={i.id} style={{ marginBottom: 5 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 2 }}>
+            <Text style={{ flex: 1, paddingRight: 8 }}>
+              {i.label}
+              {i.sublabel ? <Text style={[s.muted, { fontSize: 7.5 }]}>{`  ${i.sublabel}`}</Text> : null}
+            </Text>
+            <Text style={s.num}>
+              {formatHms(i.seconds)} · {formatPercent(i.percent)}
+            </Text>
+          </View>
+          <View style={{ height: 5, borderRadius: 2.5, backgroundColor: TRACK }}>
+            <View style={{ height: 5, borderRadius: 2.5, width: `${Math.max(1, (i.seconds / max) * 100)}%`, backgroundColor: i.id === OTHERS_ID ? BAR_OTHERS : BAR }} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 type Input = {
   period: string;
   filters: string[];
@@ -167,6 +244,7 @@ type Input = {
 
 function ReportDocument({ period, filters, generatedAt, includePerson, summary, matrix, rows }: Input) {
   const stamp = formatDateBr(generatedAt.toISOString().slice(0, 10));
+  const charts = buildCharts(summary, matrix);
   return (
     <Document title={`Relatório de horas — ${period}`} author="Compasso" creator="Compasso">
       <Page size="A4" style={s.page}>
@@ -222,6 +300,17 @@ function ReportDocument({ period, filters, generatedAt, includePerson, summary, 
         )}
         <Footer generatedAt={stamp} />
       </Page>
+
+      {summary.totalSeconds > 0 && (
+        <Page size="A4" style={s.page}>
+          <Banner title="Gráficos" subtitle={`Período: ${period}`} />
+          <BarsChart charts={charts} />
+          <SharesChart title="Por projeto" items={charts.projects} />
+          <SharesChart title={`Principais ${summary.groupBy === "tarefa" ? "tarefas" : "descrições"}`} items={charts.activities} />
+          {includePerson && charts.people.length > 1 && <SharesChart title="Por pessoa" items={charts.people} />}
+          <Footer generatedAt={stamp} />
+        </Page>
+      )}
 
       {matrix.rows.length > 0 && (
         <Page size="A4" orientation="landscape" style={s.page}>
