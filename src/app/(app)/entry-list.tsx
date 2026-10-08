@@ -80,8 +80,15 @@ export function EntryList({ entries, catalog, today, currentWeek, loadMoreHref }
     </>
   );
 
+  /**
+   * Below `sm` the row is a grid: play, text and duration on top and the three actions on a line of their own,
+   * so the description keeps its width on a 360 px phone. From `sm` the actions wrapper disappears (`contents`) and everything is one row.
+   */
   const entryRow = (entry: EntryView, nested = false) => (
-    <li key={entry.id} className={`flex items-center gap-2 p-3 ${nested ? "border-t border-border/60 bg-background pl-12" : ""}`}>
+    <li
+      key={entry.id}
+      className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 p-3 sm:flex ${nested ? "border-t border-border/60 bg-background pl-6 sm:pl-12" : ""}`}
+    >
       {playButton(entry)}
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">{entry.description || "Sem descrição"}</p>
@@ -94,17 +101,19 @@ export function EntryList({ entries, catalog, today, currentWeek, loadMoreHref }
           {entry.endDate && entry.endDate !== entry.date ? " (+1)" : ""}
         </p>
       </div>
-      <EntryDialog catalog={catalog} entry={entry} today={today} />
-      {entry.endedAt !== null ? (
-        <Button variant="ghost" size="icon" aria-label="Duplicar registro" title="Duplicar registro" disabled={pending} onClick={() => duplicate(entry)}>
-          <Copy aria-hidden />
+      <div className="col-span-3 flex items-center justify-end gap-2 sm:contents">
+        <EntryDialog catalog={catalog} entry={entry} today={today} />
+        {entry.endedAt !== null ? (
+          <Button variant="ghost" size="icon" aria-label="Duplicar registro" title="Duplicar registro" disabled={pending} onClick={() => duplicate(entry)}>
+            <Copy aria-hidden />
+          </Button>
+        ) : (
+          <span className="hidden size-9 shrink-0 sm:block" aria-hidden />
+        )}
+        <Button variant="ghost" size="icon" aria-label="Remover registro" disabled={pending} onClick={() => remove(entry)}>
+          <Trash2 aria-hidden />
         </Button>
-      ) : (
-        <span className="size-9 shrink-0" aria-hidden />
-      )}
-      <Button variant="ghost" size="icon" aria-label="Remover registro" disabled={pending} onClick={() => remove(entry)}>
-        <Trash2 aria-hidden />
-      </Button>
+      </div>
     </li>
   );
 
@@ -177,7 +186,7 @@ export function EntryList({ entries, catalog, today, currentWeek, loadMoreHref }
                               {running && <p className="text-xs text-muted-foreground">+ em andamento</p>}
                             </div>
                             {/* Same width as the three buttons of a single row (edit, duplicate, remove) plus their gaps, so group totals line up. */}
-                            <span className="w-[7.75rem] shrink-0" aria-hidden />
+                            <span className="hidden w-[7.75rem] shrink-0 sm:block" aria-hidden />
                           </li>
                           {open && group.entries.map((entry) => entryRow(entry, true))}
                         </ul>
