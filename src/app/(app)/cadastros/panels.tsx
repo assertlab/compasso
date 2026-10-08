@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { ActionButton } from "./entity-dialog";
 import { setOrganizationArchived, setProjectArchived } from "./actions";
 import { OrganizationDialog, ProjectDialog, TagDialog } from "./entity-dialogs";
+import { InviteMembersButton } from "./invite-members-button";
+import { MemberProjectsDialog } from "./member-projects-dialog";
 import type { Tenant } from "@/server/tenant";
 
 type PanelProps = { tenant: Tenant; canEdit: boolean; includeArchived: boolean; basePath: string };
@@ -148,13 +150,16 @@ export async function TagsPanel({ tenant, canEdit, includeArchived, basePath }: 
 }
 
 export async function MembersPanel({ tenant }: { tenant: Tenant }) {
-  const members = await tenant.projectMembers.overview();
+  const [members, assignable] = await Promise.all([tenant.projectMembers.overview(), tenant.projectMembers.assignableProjects()]);
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-muted-foreground">
-        Pessoas do laboratório e os projetos em que participam. Convites e papéis (admin/membro) são geridos no seletor de organização, no topo; a participação
-        em projetos é ajustada na página de cada projeto.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <p className="min-w-0 flex-1 basis-72 text-sm text-muted-foreground">
+          Pessoas do laboratório e os projetos em que participam. Quem entra por convite começa sem projetos: use &ldquo;Projetos&rdquo; para liberar. Em
+          &ldquo;Convidar pessoas&rdquo;, abra a aba Membros para convidar por e-mail, escolher admin ou membro e ver ou cancelar convites pendentes.
+        </p>
+        <InviteMembersButton />
+      </div>
       <List>
         {members.map((member) => {
           const active = member.projects.filter((project) => !project.isArchived);
@@ -183,6 +188,15 @@ export async function MembersPanel({ tenant }: { tenant: Tenant }) {
                   ))
                 )}
               </div>
+              {member.role === "member" && (
+                <MemberProjectsDialog
+                  userId={member.userId}
+                  memberName={member.name}
+                  projects={assignable}
+                  selectedIds={active.map((project) => project.id)}
+                  highlight={active.length === 0}
+                />
+              )}
             </Row>
           );
         })}

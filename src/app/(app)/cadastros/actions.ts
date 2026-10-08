@@ -68,3 +68,8 @@ export async function addProjectParticipant(_prev: ActionState, formData: FormDa
 export async function removeProjectParticipant(_prev: ActionState, formData: FormData): Promise<ActionState> {
   return mutate((t) => t.projectMembers.remove(text(formData, "projectId"), text(formData, "userId")));
 }
+
+export async function setMemberProjects(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const projectIds = formData.getAll("projectId").filter((v): v is string => typeof v === "string");
+  return mutate((t) => t.projectMembers.setForMember(text(formData, "userId"), projectIds));
+}
