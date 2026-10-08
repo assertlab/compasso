@@ -19,6 +19,8 @@ function registerFonts() {
   family = FONT;
 }
 registerFonts();
+// No automatic hyphenation: "Oracle" must not become "Ora-cle" in narrow columns.
+Font.registerHyphenationCallback((word) => [word]);
 
 /** App icon (compass on navy) used in the banner; skipped if the file is not on disk. */
 const iconPath = path.join(process.cwd(), "public/icons/icon-192.png");
@@ -27,6 +29,7 @@ const icon = existsSync(iconPath) ? iconPath : null;
 const NAVY = "#0e2e47";
 const MUTED = "#5b6770";
 const LINE = "#d5dbe0";
+const GRID = "#b4bfc8";
 
 const s = StyleSheet.create({
   page: { paddingTop: 36, paddingBottom: 44, paddingHorizontal: 36, fontSize: 9, color: "#111", fontFamily: family },
@@ -47,8 +50,8 @@ const s = StyleSheet.create({
   thText: { color: "#fff", fontWeight: 700 },
   num: { textAlign: "right" },
   // Full grid for the entry table: outer edges on each row (rows can split across pages) and a rule between columns.
-  gridEdge: { borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: LINE },
-  cell: { paddingHorizontal: 4, paddingVertical: 2.5, borderRightWidth: 0.5, borderColor: LINE },
+  gridEdge: { borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: GRID },
+  cell: { paddingHorizontal: 4, paddingVertical: 2.5, borderRightWidth: 0.5, borderColor: GRID },
   hcell: { paddingHorizontal: 4, borderRightWidth: 0.5, borderColor: "#3d6079" },
   footer: { position: "absolute", bottom: 20, left: 36, right: 36, flexDirection: "row", justifyContent: "space-between", fontSize: 8, color: MUTED },
 });
@@ -175,7 +178,7 @@ function ReportDocument({ period, filters, generatedAt, includePerson, summary, 
         <Page size="A4" orientation="landscape" style={s.page}>
           <Banner title="Registros" subtitle={`Período: ${period}`} />
           <View style={[s.th, s.gridEdge, { marginTop: 8 }]} fixed>
-            <Text style={[s.thText, s.hcell, { width: 80 }]}>Início</Text>
+            <Text style={[s.thText, s.hcell, { width: 96 }]}>Início</Text>
             {includePerson && <Text style={[s.thText, s.hcell, { width: 80 }]}>Pessoa</Text>}
             <Text style={[s.thText, s.hcell, { width: 150 }]}>Cliente / projeto</Text>
             <Text style={[s.thText, s.hcell, { width: 110 }]}>Tarefa</Text>
@@ -185,7 +188,7 @@ function ReportDocument({ period, filters, generatedAt, includePerson, summary, 
           </View>
           {rows.map((e, i) => (
             <View key={i} style={[s.row, s.gridEdge, { paddingVertical: 0 }]} wrap={false}>
-              <View style={[s.cell, { width: 80 }]}>
+              <View style={[s.cell, { width: 96 }]}>
                 <Text>{formatDateBr(e.date).slice(0, 5)}</Text>
                 <Text style={s.muted}>{formatTimeSpan(e)}</Text>
               </View>
