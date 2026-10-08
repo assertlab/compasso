@@ -17,6 +17,7 @@ import { loadCatalog, reportRowToEntryView } from "../views";
 import { DayMatrixCard } from "./day-matrix";
 import { loadReport } from "./load-report";
 import { ReportFilters } from "./report-filters";
+import { UnassignedNotice } from "./unassigned-notice";
 
 export const metadata: Metadata = { title: "Relatórios" };
 
@@ -42,13 +43,6 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
     params.set("formato", format);
     return `/relatorios/export?${params}`;
   };
-  const unassignedHref = (() => {
-    const params = new URLSearchParams({ periodo: query.periodo, projeto: "none" });
-    if (query.de) params.set("de", query.de);
-    if (query.ate) params.set("ate", query.ate);
-    for (const id of query.pessoas) params.append("pessoas", id);
-    return `/relatorios?${params}`;
-  })();
   const panelHref = `/painel?${toSearchParams(query)}`;
   const summary = summarize(result.rows, query.agrupar);
   const dayMatrix = buildDayMatrix(result.rows, period, tz, { includePeople: isAdmin });
@@ -78,15 +72,7 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
         </p>
       )}
 
-      {report.unassignedCount > 0 && (
-        <p className="rounded-md border bg-muted/50 p-3 text-sm">
-          {report.unassignedCount === 1 ? "1 registro sem projeto neste período não entra" : `${report.unassignedCount} registros sem projeto neste período não entram`}{" "}
-          no filtro de cliente.{" "}
-          <Link href={unassignedHref} className="underline">
-            Ver registros sem projeto
-          </Link>
-        </p>
-      )}
+      <UnassignedNotice count={report.unassignedCount} query={query} />
 
       {summary.totalEntries === 0 ? (
         <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">Nenhum registro encontrado com esses filtros.</p>
