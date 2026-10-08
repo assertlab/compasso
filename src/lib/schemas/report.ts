@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { GROUP_BY } from "../report";
 import { PERIOD_PRESETS } from "../report-period";
 
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -16,6 +17,8 @@ export const reportQuery = z.object({
   projeto: z.union([z.uuid(), z.literal("none")]).optional().catch(undefined),
   tarefa: z.uuid().optional().catch(undefined),
   pessoas: z.array(z.uuid()).max(100).catch([]),
+  /** Lowest summary level; absent means the default (description). */
+  agrupar: z.enum(GROUP_BY).optional().catch(undefined),
 });
 export type ReportQuery = z.infer<typeof reportQuery>;
 
@@ -30,6 +33,7 @@ export function parseReportQuery(sp: Record<string, string | string[] | undefine
     cliente: first(sp.cliente),
     projeto: first(sp.projeto),
     tarefa: first(sp.tarefa),
+    agrupar: first(sp.agrupar),
     pessoas: [...new Set(people)],
   });
 }
@@ -37,7 +41,7 @@ export function parseReportQuery(sp: Record<string, string | string[] | undefine
 /** The query back as URL params (only what is set), e.g. to link to the export with the same filters. */
 export function toSearchParams(q: ReportQuery): URLSearchParams {
   const params = new URLSearchParams({ periodo: q.periodo });
-  for (const [key, value] of [["de", q.de], ["ate", q.ate], ["cliente", q.cliente], ["projeto", q.projeto], ["tarefa", q.tarefa]] as const) {
+  for (const [key, value] of [["de", q.de], ["ate", q.ate], ["cliente", q.cliente], ["projeto", q.projeto], ["tarefa", q.tarefa], ["agrupar", q.agrupar]] as const) {
     if (value) params.set(key, value);
   }
   for (const id of q.pessoas) params.append("pessoas", id);

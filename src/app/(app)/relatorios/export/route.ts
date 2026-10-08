@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     filters: describeFilters(report.query, catalog, report.people),
     generatedAt: new Date(),
     includePerson: report.isAdmin,
-    summary: summarize(report.rows),
+    summary: summarize(report.rows, report.query.agrupar),
     rows,
   };
   if (format === "pdf") {
