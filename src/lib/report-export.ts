@@ -2,7 +2,7 @@ import { formatHms, localDateString, localTimeString, toDecimalHours } from "./t
 import type { ReportRow } from "./report";
 import type { ReportQuery } from "./schemas/report";
 
-export const EXPORT_FORMATS = ["xlsx", "csv"] as const;
+export const EXPORT_FORMATS = ["xlsx", "csv", "pdf"] as const;
 export type ExportFormat = (typeof EXPORT_FORMATS)[number];
 
 /** One report line in the caller's local time, shared by every export format. */

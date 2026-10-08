@@ -35,7 +35,7 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
   const [catalog, report] = await Promise.all([loadCatalog(tenant), loadReport(tenant, ctx, await searchParams)]);
   const { query, period, periodError, isAdmin } = report;
   const result = { rows: report.rows, runningCount: report.runningCount };
-  const exportHref = (format: "xlsx" | "csv") => {
+  const exportHref = (format: "xlsx" | "csv" | "pdf") => {
     const params = toSearchParams(query);
     params.set("formato", format);
     return `/relatorios/export?${params}`;
@@ -95,6 +95,9 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
             </Button>
             <Button asChild variant="outline" size="sm">
               <a href={exportHref("csv")}>Baixar CSV</a>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <a href={exportHref("pdf")}>Baixar PDF</a>
             </Button>
           </div>
 
