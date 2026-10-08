@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import type { DayMatrix } from "@/lib/report-days";
 import type { ExportRow } from "@/lib/report-export";
 import { GROUP_LABELS, type ReportSummary } from "@/lib/report";
 
@@ -33,6 +34,7 @@ export async function buildXlsx(input: {
   generatedAt: Date;
   includePerson: boolean;
   summary: ReportSummary;
+  matrix: DayMatrix;
   rows: ExportRow[];
 }): Promise<Uint8Array> {
   const wb = new ExcelJS.Workbook();
@@ -88,6 +90,67 @@ export async function buildXlsx(input: {
     ph.getCell(2).alignment = ph.getCell(3).alignment = ph.getCell(4).alignment = { horizontal: "right" };
     for (const p of input.summary.people) line(p.name, p.seconds, p.entries, 0, false);
   }
+
+  // ---- Por dia / Por semana (project x day grid; person rows are shown but not double counted in the totals)
+  const grid = wb.addWorksheet(input.matrix.granularity === "dia" ? "Por dia" : "Por semana", { views: [{ state: "frozen", xSplit: 2, ySplit: 2 }] });
+  const m = input.matrix;
+  const firstCol = 3;
+  const totalCol = firstCol + m.columns.length;
+  grid.getColumn(1).width = 30;
+  grid.getColumn(2).width = 22;
+  for (let i = 0; i <= m.columns.length; i++) grid.getColumn(firstCol + i).width = 11;
+  const head1 = grid.getRow(1);
+  const head2 = grid.getRow(2);
+  head1.getCell(1).value = "Projeto";
+  head1.getCell(2).value = "Cliente";
+  m.columns.forEach((c, i) => {
+    head1.getCell(firstCol + i).value = c.label;
+    head2.getCell(firstCol + i).value = c.sublabel;
+  });
+  head1.getCell(totalCol).value = "Total";
+  for (const row of [head1, head2]) {
+    styleHeader(row);
+    row.eachCell({ includeEmpty: true }, (cell, col) => {
+      cell.fill = HEADER_FILL;
+      if (col >= firstCol) cell.alignment = { horizontal: "right" };
+    });
+  }
+  const colLetter = (col: number) => grid.getColumn(col).letter;
+  const projectRows: number[] = [];
+  let gr = 3;
+  for (const row of m.rows) {
+    const out = grid.getRow(gr);
+    out.getCell(1).value = row.label;
+    out.getCell(1).alignment = { indent: row.level };
+    out.getCell(2).value = row.sublabel ?? "";
+    row.cells.forEach((seconds, i) => {
+      if (seconds === 0) return;
+      const cell = out.getCell(firstCol + i);
+      cell.value = seconds / DAY;
+      cell.numFmt = FMT_DURATION;
+    });
+    out.getCell(totalCol).value = row.total / DAY;
+    out.getCell(totalCol).numFmt = FMT_DURATION;
+    if (row.level === 0) {
+      out.font = BOLD;
+      projectRows.push(gr);
+    } else {
+      out.font = { color: { argb: "FF555555" } };
+    }
+    gr++;
+  }
+  const gTotals = grid.getRow(gr);
+  gTotals.getCell(1).value = "Totais";
+  const sumOf = (col: number) => projectRows.map((r) => `${colLetter(col)}${r}`).join(",");
+  m.totals.forEach((seconds, i) => {
+    const cell = gTotals.getCell(firstCol + i);
+    cell.value = projectRows.length > 0 ? { formula: `SUM(${sumOf(firstCol + i)})`, result: seconds / DAY } : seconds / DAY;
+    cell.numFmt = FMT_DURATION;
+  });
+  gTotals.getCell(totalCol).value = projectRows.length > 0 ? { formula: `SUM(${sumOf(totalCol)})`, result: m.grandTotal / DAY } : m.grandTotal / DAY;
+  gTotals.getCell(totalCol).numFmt = FMT_DURATION;
+  gTotals.font = BOLD;
+  gTotals.eachCell({ includeEmpty: true }, (cell) => (cell.border = { top: { style: "thin" } }));
 
   // ---- Registros
   const det = wb.addWorksheet("Registros", { views: [{ state: "frozen", ySplit: 1 }] });

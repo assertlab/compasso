@@ -7,12 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDayLabel } from "@/lib/entry-groups";
 import { GROUP_LABELS, summarize } from "@/lib/report";
+import { buildDayMatrix } from "@/lib/report-days";
 import { formatTimeSpan } from "@/lib/report-export";
 import { toSearchParams } from "@/lib/schemas/report";
 import { formatHms, localDateString, localTimeString } from "@/lib/time";
 import { getTenant } from "@/server/get-tenant";
 import { EntryDialog } from "../entry-dialog";
 import { loadCatalog, reportRowToEntryView } from "../views";
+import { DayMatrixCard } from "./day-matrix";
 import { loadReport } from "./load-report";
 import { ReportFilters } from "./report-filters";
 
@@ -48,6 +50,7 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
     return `/relatorios?${params}`;
   })();
   const summary = summarize(result.rows, query.agrupar);
+  const dayMatrix = buildDayMatrix(result.rows, period, tz, { includePeople: isAdmin });
   const showPerson = isAdmin;
 
   return (
@@ -130,6 +133,8 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
               ))}
             </CardContent>
           </Card>
+
+          <DayMatrixCard matrix={dayMatrix} />
 
           {showPerson && summary.people.length > 1 && (
             <Card>
