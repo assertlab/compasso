@@ -49,6 +49,10 @@ export async function resumeEntryAction(id: string): Promise<ActionState> {
   return mutate((t) => t.timeEntries.startFrom(id));
 }
 
+export async function duplicateEntryAction(id: string): Promise<ActionState> {
+  return mutate((t) => t.timeEntries.duplicate(id));
+}
+
 export async function stopTimerAction(): Promise<ActionState> {
   return mutate((t) => t.timeEntries.stopTimer());
 }

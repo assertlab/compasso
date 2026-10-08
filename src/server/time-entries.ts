@@ -251,6 +251,21 @@ export function createTimeEntries(db: TenantDb, ctx: TenantContext, deps: Deps) 
       });
     },
 
+    /** Copies a finished entry as is (same times, description, project, task, tags and billing flag) as a new entry. */
+    async duplicate(id: string): Promise<TimeEntry> {
+      const [source] = await withTags([await getOwn(id)]);
+      if (!source.endedAt) throw new ValidationError({ form: "Pare o timer antes de duplicar o registro." });
+      return repo.createManual({
+        description: source.description,
+        projectId: source.projectId,
+        taskId: source.taskId,
+        tagIds: source.tagIds,
+        isBillable: source.isBillable,
+        startedAt: source.startedAt,
+        endedAt: source.endedAt,
+      });
+    },
+
     async stopTimer(): Promise<TimeEntry> {
       const { here } = await runningTimer();
       if (!here) throw new NotFoundError("Running timer");
