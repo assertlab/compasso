@@ -36,6 +36,13 @@
       "when": 1791560000000,
       "tag": "0004_time_entry_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791485860508,
+      "tag": "0005_better_auth_spike",
+      "breakpoints": true
     }
   ]
 }
