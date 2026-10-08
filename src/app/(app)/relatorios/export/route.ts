@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { buildCsv, describeFilters, EXPORT_FORMATS, exportFileName, formatDateBr, toExportRows, type ExportFormat } from "@/lib/report-export";
 import { summarize } from "@/lib/report";
 import { getTenant } from "@/server/get-tenant";
+import { buildPdf } from "@/server/report-pdf";
 import { buildXlsx } from "@/server/report-xlsx";
 import { loadCatalog } from "../../views";
 import { loadReport } from "../load-report";
@@ -19,7 +20,7 @@ function paramsToRecord(params: URLSearchParams): Record<string, string | string
 }
 
 /**
- * GET /relatorios/export?formato=xlsx|csv&<same filters as the page>. Same loader as the page, so the file
+ * GET /relatorios/export?formato=xlsx|csv|pdf&<same filters as the page>. Same loader as the page, so the file
  * always matches the screen; members are restricted to their own hours by the data layer, not here.
  */
 export async function GET(request: NextRequest) {
@@ -43,13 +44,17 @@ export async function GET(request: NextRequest) {
     return new Response(buildCsv(rows, { includePerson: report.isAdmin }), { headers: { ...headers, "Content-Type": "text/csv; charset=utf-8" } });
   }
 
-  const file = await buildXlsx({
+  const summaryInput = {
     period: `${formatDateBr(report.period.fromDate)} a ${formatDateBr(report.period.toDate)}`,
     filters: describeFilters(report.query, catalog, report.people),
     generatedAt: new Date(),
     includePerson: report.isAdmin,
     summary: summarize(report.rows),
     rows,
-  });
+  };
+  if (format === "pdf") {
+    return new Response((await buildPdf(summaryInput)) as BodyInit, { headers: { ...headers, "Content-Type": "application/pdf" } });
+  }
+  const file = await buildXlsx(summaryInput);
   return new Response(file as BodyInit, { headers: { ...headers, "Content-Type": XLSX_TYPE } });
 }

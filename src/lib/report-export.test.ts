@@ -80,6 +80,7 @@ describe("helpers", () => {
   it("formats dates and file names", () => {
     expect(formatDateBr("2026-02-03")).toBe("03/02/2026");
     expect(exportFileName("2026-02-01", "2026-02-28", "xlsx")).toBe("compasso-horas_2026-02-01_2026-02-28.xlsx");
+    expect(exportFileName("2026-02-01", "2026-02-28", "pdf")).toBe("compasso-horas_2026-02-01_2026-02-28.pdf");
   });
 
   it("marks entries that end on a later day", () => {
