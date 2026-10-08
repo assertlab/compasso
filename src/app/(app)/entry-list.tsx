@@ -176,7 +176,8 @@ export function EntryList({ entries, catalog, today, currentWeek, loadMoreHref }
                               <p className="font-mono tabular-nums">{formatHms(group.totalSeconds)}</p>
                               {running && <p className="text-xs text-muted-foreground">+ em andamento</p>}
                             </div>
-                            <span className="w-[6.75rem] shrink-0" aria-hidden />
+                            {/* Same width as the three buttons of a single row (edit, duplicate, remove) plus their gaps, so group totals line up. */}
+                            <span className="w-[7.75rem] shrink-0" aria-hidden />
                           </li>
                           {open && group.entries.map((entry) => entryRow(entry, true))}
                         </ul>
