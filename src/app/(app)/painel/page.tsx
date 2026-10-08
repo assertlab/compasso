@@ -14,6 +14,7 @@ import { loadCatalog } from "../views";
 import { ReportChartsSection } from "../relatorios/charts";
 import { loadReport } from "../relatorios/load-report";
 import { ReportFilters } from "../relatorios/report-filters";
+import { UnassignedNotice } from "../relatorios/unassigned-notice";
 
 export const metadata: Metadata = { title: "Painel" };
 
@@ -64,6 +65,8 @@ async function Panel({ searchParams }: Pick<PageProps<"/painel">, "searchParams"
           {report.runningCount === 1 ? "Há 1 timer em andamento" : `Há ${report.runningCount} timers em andamento`} neste período. Ele só entra depois de parado.
         </p>
       )}
+
+      <UnassignedNotice count={report.unassignedCount} query={query} />
 
       {h.totalEntries === 0 ? (
         <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">Nenhum registro neste período.</p>
