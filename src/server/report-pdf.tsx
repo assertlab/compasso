@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { Document, Font, Image, Page, renderToBuffer, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { type ExportRow, formatDateBr, formatTimeSpan } from "@/lib/report-export";
+import { type DayMatrix, formatHm } from "@/lib/report-days";
 import { GROUP_LABELS, type ReportSummary } from "@/lib/report";
 import { formatHms, toDecimalHours } from "@/lib/time";
 
@@ -107,16 +108,64 @@ function SummaryHeader({ first }: { first: string }) {
   );
 }
 
+/** Wide grids (a month of days) use h:mm so 31 columns fit on a landscape page; short ones keep seconds. */
+function DayGrid({ matrix }: { matrix: DayMatrix }) {
+  const compact = matrix.columns.length > 10;
+  const fmt = (seconds: number) => (seconds === 0 ? "–" : compact ? formatHm(seconds) : formatHms(seconds));
+  const colWidth = compact ? 20 : 62;
+  const totalWidth = compact ? 40 : 66;
+  const font = compact ? 7 : 8.5;
+  return (
+    <View>
+      <View style={[s.th, s.gridEdge]}>
+        <Text style={[s.thText, s.hcell, { width: 170, fontSize: font }]}>Projeto</Text>
+        {matrix.columns.map((c) => (
+          <View key={c.key} style={[s.hcell, { width: colWidth, paddingHorizontal: 1 }]}>
+            <Text style={[s.thText, s.num, { fontSize: font }]}>{c.label}</Text>
+            <Text style={[s.num, { fontSize: font - 1, color: "#a9c4d6" }]}>{c.sublabel}</Text>
+          </View>
+        ))}
+        <Text style={[s.thText, s.num, { width: totalWidth, paddingHorizontal: 3, fontSize: font }]}>Total</Text>
+      </View>
+      {matrix.rows.map((row) => (
+        <View key={row.id} style={[s.row, s.gridEdge, { paddingVertical: 0 }]} wrap={false}>
+          <View style={[s.cell, { width: 170 }]}>
+            <Text style={{ fontSize: font, fontWeight: row.level === 0 ? 700 : 400, paddingLeft: row.level * 8 }}>{row.label}</Text>
+            {row.sublabel && <Text style={[s.muted, { fontSize: font - 1 }]}>{row.sublabel}</Text>}
+          </View>
+          {row.cells.map((seconds, i) => (
+            <Text key={matrix.columns[i].key} style={[s.cell, s.num, { width: colWidth, paddingHorizontal: 1, fontSize: font }]}>
+              {fmt(seconds)}
+            </Text>
+          ))}
+          <Text style={[s.num, { width: totalWidth, paddingHorizontal: 3, paddingVertical: 2.5, fontSize: font, fontWeight: row.level === 0 ? 700 : 400 }]}>{fmt(row.total)}</Text>
+        </View>
+      ))}
+      <View style={[s.row, s.gridEdge, { paddingVertical: 0, borderTopWidth: 1 }]} wrap={false}>
+        <Text style={[s.cell, { width: 170, fontSize: font, fontWeight: 700 }]}>Totais</Text>
+        {matrix.totals.map((seconds, i) => (
+          <Text key={matrix.columns[i].key} style={[s.cell, s.num, { width: colWidth, paddingHorizontal: 1, fontSize: font, fontWeight: 700 }]}>
+            {fmt(seconds)}
+          </Text>
+        ))}
+        <Text style={[s.num, { width: totalWidth, paddingHorizontal: 3, paddingVertical: 2.5, fontSize: font, fontWeight: 700 }]}>{fmt(matrix.grandTotal)}</Text>
+      </View>
+      {compact && <Text style={[s.muted, { marginTop: 6, fontSize: 7 }]}>Valores em h:mm, arredondados ao minuto. O XLSX traz os valores exatos.</Text>}
+    </View>
+  );
+}
+
 type Input = {
   period: string;
   filters: string[];
   generatedAt: Date;
   includePerson: boolean;
   summary: ReportSummary;
+  matrix: DayMatrix;
   rows: ExportRow[];
 };
 
-function ReportDocument({ period, filters, generatedAt, includePerson, summary, rows }: Input) {
+function ReportDocument({ period, filters, generatedAt, includePerson, summary, matrix, rows }: Input) {
   const stamp = formatDateBr(generatedAt.toISOString().slice(0, 10));
   return (
     <Document title={`Relatório de horas — ${period}`} author="Compasso" creator="Compasso">
@@ -173,6 +222,14 @@ function ReportDocument({ period, filters, generatedAt, includePerson, summary, 
         )}
         <Footer generatedAt={stamp} />
       </Page>
+
+      {matrix.rows.length > 0 && (
+        <Page size="A4" orientation="landscape" style={s.page}>
+          <Banner title={matrix.granularity === "dia" ? "Por dia" : "Por semana"} subtitle={`Período: ${period}`} />
+          <DayGrid matrix={matrix} />
+          <Footer generatedAt={stamp} />
+        </Page>
+      )}
 
       {rows.length > 0 && (
         <Page size="A4" orientation="landscape" style={s.page}>

@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { buildCsv, describeFilters, EXPORT_FORMATS, exportFileName, formatDateBr, toExportRows, type ExportFormat } from "@/lib/report-export";
 import { summarize } from "@/lib/report";
+import { buildDayMatrix } from "@/lib/report-days";
 import { getTenant } from "@/server/get-tenant";
 import { buildPdf } from "@/server/report-pdf";
 import { buildXlsx } from "@/server/report-xlsx";
@@ -50,6 +51,7 @@ export async function GET(request: NextRequest) {
     generatedAt: new Date(),
     includePerson: report.isAdmin,
     summary: summarize(report.rows, report.query.agrupar),
+    matrix: buildDayMatrix(report.rows, report.period, ctx.timezone, { includePeople: report.isAdmin }),
     rows,
   };
   if (format === "pdf") {
