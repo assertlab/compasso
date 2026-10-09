@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
+import { GitHubIcon, GoogleIcon } from "@/components/brand-icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -95,17 +96,26 @@ export function SignInForm({ next, providers, socialFailed }: { next: string; pr
           </p>
         )}
         {step === "email" && (providers.google || providers.github) && (
-          <div className="grid gap-2 border-t pt-4">
-            {providers.google && (
-              <Button type="button" variant="outline" onClick={() => social("google")}>
-                Continuar com Google
-              </Button>
-            )}
-            {providers.github && (
-              <Button type="button" variant="outline" onClick={() => social("github")}>
-                Continuar com GitHub
-              </Button>
-            )}
+          <div className="grid gap-3">
+            <div className="flex items-center gap-3 text-xs text-muted-foreground" aria-hidden>
+              <span className="h-px flex-1 bg-border" />
+              ou
+              <span className="h-px flex-1 bg-border" />
+            </div>
+            <div className={providers.google && providers.github ? "grid grid-cols-2 gap-2" : "grid gap-2"}>
+              {providers.google && (
+                <Button type="button" variant="outline" size="sm" aria-label="Continuar com Google" onClick={() => social("google")}>
+                  <GoogleIcon className="size-4" />
+                  Google
+                </Button>
+              )}
+              {providers.github && (
+                <Button type="button" variant="outline" size="sm" aria-label="Continuar com GitHub" onClick={() => social("github")}>
+                  <GitHubIcon className="size-4" />
+                  GitHub
+                </Button>
+              )}
+            </div>
           </div>
         )}
         <p className="text-xs text-muted-foreground">Primeiro acesso? Use o mesmo e-mail: a conta é criada automaticamente.</p>
