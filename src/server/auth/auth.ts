@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
+import { after } from "next/server";
 import { emailOTP, organization } from "better-auth/plugins";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { getDb, type Db } from "@/db";
@@ -71,10 +72,16 @@ export function createAuth({
         expiresIn: 300,
         allowedAttempts: 3,
         async sendVerificationOTP({ email, otp }) {
-          // Not awaited on purpose (timing attacks). Errors are logged without the message body.
-          void send({ to: email, subject: "Seu código de acesso ao Compasso", text: `Seu código: ${otp}\nVálido por 5 minutos.` }).catch(
+          // Not awaited on purpose (timing attacks), but kept alive with after(): on Vercel the function can be frozen
+          // as soon as the response is sent, which silently drops a fire-and-forget fetch. Errors never include the body.
+          const task = send({ to: email, subject: "Seu código de acesso ao Compasso", text: `Seu código: ${otp}\nVálido por 5 minutos.` }).catch(
             (e: unknown) => console.error("[auth] failed to send sign-in code", e instanceof Error ? e.message : e),
           );
+          try {
+            after(task);
+          } catch {
+            // outside a request scope (tests, scripts): the promise simply runs on its own
+          }
         },
       }),
       organization({
