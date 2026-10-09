@@ -2,7 +2,6 @@
 
 import { Building2, LogOut, Plus } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -15,7 +14,6 @@ function initials(name: string | undefined, email: string | undefined) {
 
 /** Workspace name + account button; one dialog holds the account, the workspace switcher and sign-out (no extra menu dependency). */
 export function AccountMenu() {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const session = authClient.useSession();
   const orgs = authClient.useListOrganizations();
@@ -24,14 +22,12 @@ export function AccountMenu() {
   async function switchTo(organizationId: string) {
     await authClient.organization.setActive({ organizationId });
     setOpen(false);
-    router.replace("/");
-    router.refresh();
+    window.location.replace("/");
   }
 
   async function signOut() {
     await authClient.signOut();
-    router.replace("/sign-in");
-    router.refresh();
+    window.location.replace("/sign-in");
   }
 
   const user = session.data?.user;
