@@ -15,6 +15,25 @@ const eslintConfig = defineConfig([
     // Plain service worker script served as-is
     "public/sw.js",
   ]),
+  // ADR-026: pages, components and libs reach the database only through src/server (the tenant layer). Type-only imports are fine.
+  {
+    files: ["src/app/**/*.{ts,tsx}", "src/components/**/*.{ts,tsx}", "src/lib/**/*.{ts,tsx}"],
+    ignores: ["**/*.test.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/db", "@/db/*"],
+              allowTypeImports: true,
+              message: "Do not import the database outside src/server: go through getTenant() / createTenant() (ADR-026).",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;
