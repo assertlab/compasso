@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getDb, type Db } from "@/db";
@@ -48,6 +48,47 @@ export async function resolveWorkspaceContext(db: Db, session: AuthSessionLike):
     .limit(1);
   if (!row) return { kind: "no-membership" };
 
+  const role = roleFromAuth(row.role);
+
+  // Fast path (one query): our rows already mirror the session, so there is nothing to write.
+  const [known] = await db
+    .select({
+      userId: users.id,
+      userName: users.name,
+      avatarUrl: users.avatarUrl,
+      timezone: users.timezone,
+      workspaceId: workspaces.id,
+      workspaceName: workspaces.name,
+      role: workspaceMembers.role,
+    })
+    .from(users)
+    .innerJoin(workspaceMembers, eq(workspaceMembers.userId, users.id))
+    .innerJoin(workspaces, eq(workspaces.id, workspaceMembers.workspaceId))
+    .where(
+      and(
+        eq(users.authId, session.user.id),
+        eq(workspaces.authOrgId, orgId),
+        // logically removed members / archived workspaces / anonymized users never take the fast path
+        isNull(workspaceMembers.removedAt),
+        isNull(workspaces.archivedAt),
+        isNull(users.deletedAt),
+      ),
+    )
+    .limit(1);
+  const sessionName = session.user.name?.trim() || null;
+  if (
+    known &&
+    known.role === role &&
+    known.workspaceName === row.orgName &&
+    (!sessionName || sessionName === known.userName) &&
+    (session.user.image ?? null) === known.avatarUrl
+  ) {
+    return {
+      kind: "ok",
+      context: { userId: known.userId, workspaceId: known.workspaceId, role, timezone: known.timezone, userName: known.userName, workspaceName: known.workspaceName },
+    };
+  }
+
   const user = await ensureUser(db, session.user);
   if (!user) return { kind: "deleted" };
 
@@ -59,7 +100,6 @@ export async function resolveWorkspaceContext(db: Db, session: AuthSessionLike):
     .returning();
   if (workspace.archivedAt) return { kind: "archived" };
 
-  const role = roleFromAuth(row.role);
   await db
     .insert(workspaceMembers)
     .values({ workspaceId: workspace.id, userId: user.id, role })
@@ -111,10 +151,15 @@ async function ensureUser(db: Db, authUser: AuthSessionLike["user"]) {
   return created;
 }
 
-/** Page/action entry point. Not used by the app until the login swap (PR 2). */
+/**
+ * Page/action entry point (re-exported as `requireWorkspaceContext`). Redirects to sign-in when signed out and to
+ * /onboarding when the person still has to give a name or pick a workspace.
+ */
 export async function requireAuthWorkspaceContext(): Promise<WorkspaceContext> {
   const session = await getAuth().api.getSession({ headers: await headers() });
   if (!session) redirect("/sign-in");
+  // E-mail sign-up leaves the name empty: onboarding asks for it before anything else.
+  if (!session.user.name?.trim()) redirect("/onboarding");
   const result = await resolveWorkspaceContext(getDb(), session);
   switch (result.kind) {
     case "ok":

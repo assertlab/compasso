@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { Db } from "@/db";
+import { organization as authOrganization } from "@/db/auth-schema";
 import { users, workspaceMembers, workspaces } from "@/db/schema";
 import { createTestDb, type TestDb } from "@/test/db";
 import { createAuth } from "./auth";
@@ -61,6 +62,18 @@ describe("resolveWorkspaceContext", () => {
     expect(first.context.workspaceName).toBe("Acme Ltda");
     expect(await db.select().from(workspaces).where(eq(workspaces.authOrgId, org.id))).toHaveLength(1);
     expect(await db.select().from(users).where(eq(users.email, "ana@example.com"))).toHaveLength(1);
+  });
+
+  it("syncs a changed name and a renamed workspace even when the rows already exist (fast path falls back)", async () => {
+    const u = await signIn("renamer@example.com");
+    const org = await auth.api.createOrganization({ headers: u.headers, body: { name: "Old Name", slug: "old-name" } });
+    const first = await resolveWorkspaceContext(asDb(), sessionOf({ ...u.user, name: "" }, org.id));
+    expect(first.kind).toBe("ok");
+    const second = await resolveWorkspaceContext(asDb(), sessionOf({ ...u.user, name: "Renata" }, org.id));
+    expect(second.kind === "ok" && second.context.userName).toBe("Renata");
+    await db.update(authOrganization).set({ name: "New Name" }).where(eq(authOrganization.id, org.id));
+    const third = await resolveWorkspaceContext(asDb(), sessionOf({ ...u.user, name: "Renata" }, org.id));
+    expect(third.kind === "ok" && third.context.workspaceName).toBe("New Name");
   });
 
   it("returns no-org without an active organization and no-membership for a stranger", async () => {
