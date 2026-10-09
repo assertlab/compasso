@@ -132,7 +132,7 @@ async function ensureUser(db: Db, authUser: AuthSessionLike["user"]) {
     return updated;
   }
 
-  const [byEmail] = await db.select().from(users).where(sql`lower(${users.email}) = ${email}`);
+  const [byEmail] = await db.select().from(users).where(and(sql`lower(${users.email}) = ${email}`, isNull(users.authId)));
   if (byEmail) {
     if (byEmail.deletedAt) return null;
     const [linked] = await db
