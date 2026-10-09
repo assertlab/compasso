@@ -19,5 +19,9 @@ export const sendMail: Mailer = async (message) => {
     headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({ from: env.MAIL_FROM, ...message }),
   });
-  if (!res.ok) throw new Error(`Resend responded ${res.status}`);
+  if (!res.ok) {
+    // Resend's error body is {name, message} (e.g. "Invalid `from` field"): useful and free of secrets/OTPs.
+    const detail = await res.json().then((b: { name?: string; message?: string }) => `${b.name ?? ""}: ${b.message ?? ""}`).catch(() => "");
+    throw new Error(`Resend responded ${res.status} ${detail}`.trim());
+  }
 };
