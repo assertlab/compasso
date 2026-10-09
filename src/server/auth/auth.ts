@@ -1,4 +1,5 @@
-import { betterAuth } from "better-auth";
+import { APIError, betterAuth } from "better-auth";
+import { createAuthMiddleware } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { after } from "next/server";
@@ -8,6 +9,7 @@ import { getDb, type Db } from "@/db";
 import * as authSchema from "@/db/auth-schema";
 import { users, workspaceMembers, workspaces } from "@/db/schema";
 import { getAuthEnv } from "./env";
+import { consumeOtpQuota } from "./otp-limit";
 import { sendMail, type Mailer } from "./mail";
 import { stripProviderTokens } from "./strip-tokens";
 
@@ -24,13 +26,15 @@ export function createAuth({
   env?: ReturnType<typeof getAuthEnv>;
 }) {
   const baseURL = env.BETTER_AUTH_URL;
+  // Social sign-in must never trust an address the provider did not verify (COMP-001). `requireEmailVerification` refuses the
+  // session, but Better Auth creates the user and the account first; `databaseHooks.user.create.before` below stops that creation.
   const google =
     env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
-      ? { google: { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET } }
+      ? { google: { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET, requireEmailVerification: true } }
       : {};
   const github =
     env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET
-      ? { github: { clientId: env.GITHUB_CLIENT_ID, clientSecret: env.GITHUB_CLIENT_SECRET } }
+      ? { github: { clientId: env.GITHUB_CLIENT_ID, clientSecret: env.GITHUB_CLIENT_SECRET, requireEmailVerification: true } }
       : {};
 
   return betterAuth({
@@ -46,7 +50,24 @@ export function createAuth({
       max: 100,
       customRules: { "/email-otp/send-verification-otp": { window: 60, max: 3 } },
     },
+    hooks: {
+      // Runs before the code exists, so a refused request neither rotates nor invalidates a valid code. Same answer for every
+      // address (no enumeration). Trade-off: someone can exhaust the quota of a target address and delay its code login for
+      // up to an hour; social sign-in still works and the alternative was a ~48% chance of guessing a code in a day (COMP-002).
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== "/email-otp/send-verification-otp") return;
+        const email = (ctx.body as { email?: unknown } | undefined)?.email;
+        if (typeof email !== "string") return;
+        if (!(await consumeOtpQuota(db, email))) {
+          throw new APIError("TOO_MANY_REQUESTS", { message: "Muitos códigos pedidos para este e-mail. Tente de novo mais tarde." });
+        }
+      }),
+    },
     databaseHooks: {
+      user: {
+        // E-mail codes create verified users; an unverified one can only come from a social provider (COMP-001).
+        create: { before: async (user) => (user.emailVerified ? undefined : false) },
+      },
       session: {
         create: {
           // Sign in lands directly in the user's first organization (Clerk did this with the "active org").
@@ -71,6 +92,7 @@ export function createAuth({
         otpLength: 6,
         expiresIn: 300,
         allowedAttempts: 3,
+        storeOTP: "hashed", // a leaked table must not hold usable codes (COMP-005)
         async sendVerificationOTP({ email, otp }) {
           // Not awaited on purpose (timing attacks), but kept alive with after(): on Vercel the function can be frozen
           // as soon as the response is sent, which silently drops a fire-and-forget fetch. Errors never include the body.
@@ -85,6 +107,7 @@ export function createAuth({
         },
       }),
       organization({
+        requireEmailVerificationOnInvitation: true,
         async sendInvitationEmail({ id, email, organization: org, inviter }) {
           await send({
             to: email,

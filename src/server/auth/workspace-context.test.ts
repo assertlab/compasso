@@ -128,3 +128,36 @@ describe("resolveWorkspaceContext", () => {
     expect((await resolveWorkspaceContext(asDb(), sessionOf(guest.user, org.id))).kind).toBe("no-membership");
   });
 });
+
+describe("ensureUser e-mail linking (COMP-010)", () => {
+  it("never re-points a domain user that already has an auth_id", async () => {
+    const db = await createTestDb();
+    const mails: { text: string }[] = [];
+    const auth = createAuth({
+      db: db as unknown as Db,
+      nextJsCookies: false,
+      env: getAuthEnv({ NODE_ENV: "test", BETTER_AUTH_SECRET: "test-secret-test-secret-test-secret-123" }),
+      send: async (m) => void mails.push(m),
+    });
+    await db.insert(users).values({ authId: "old-auth-id", email: "taken@example.com", name: "Original" });
+
+    await auth.api.sendVerificationOTP({ body: { email: "taken@example.com", type: "sign-in" } });
+    await new Promise((r) => setTimeout(r, 20));
+    const otp = /(\d{6})/.exec(mails[0].text)![1];
+    const res = await auth.api.signInEmailOTP({ body: { email: "taken@example.com", otp }, returnHeaders: true });
+    const headers = new Headers({ cookie: res.headers.getSetCookie().map((c) => c.split(";")[0]).join("; ") });
+    const org = await auth.api.createOrganization({ headers, body: { name: "Taken", slug: "taken" } });
+
+    // the unique e-mail on `users` makes the insert fail; what matters is that the existing row is left alone
+    const u = res.response.user;
+    await resolveWorkspaceContext(db as unknown as Db, {
+      user: { id: u.id, email: u.email, name: u.name, image: null },
+      session: { activeOrganizationId: org.id },
+    } as AuthSessionLike).catch(() => undefined);
+
+    const rows = await db.select().from(users).where(eq(users.email, "taken@example.com"));
+    expect(rows).toHaveLength(1);
+    expect(rows[0].authId).toBe("old-auth-id");
+    expect(rows[0].name).toBe("Original");
+  });
+});
