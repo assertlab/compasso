@@ -175,6 +175,55 @@ describe("project participation (access model)", () => {
     expect(rows).toHaveLength(projects.length * 3);
   });
 
+  describe("setting a member's projects in one go", () => {
+    const projectIdsOf = async (u: Who) => (await tAdmin.projectMembers.overview()).find((m) => m.userId === u.userId)?.projects.map((p) => p.id).sort() ?? [];
+
+    it("offers only active projects, and only to admins", async () => {
+      const org = await tAdmin.organizations.create({ name: "Cliente set" });
+      const old = await tAdmin.projects.create({ organizationId: org.id, name: "Arquivado set" });
+      await tAdmin.projects.update(old.id, { isArchived: true });
+      const offered = (await tAdmin.projectMembers.assignableProjects()).map((p) => p.id);
+      expect(offered).toContain(open.id);
+      expect(offered).not.toContain(old.id);
+      await expect(tAna.projectMembers.assignableProjects()).rejects.toBeInstanceOf(ForbiddenError);
+      expect((await tOther.projectMembers.assignableProjects()).map((p) => p.id)).not.toContain(open.id);
+    });
+
+    it("adds and removes, is idempotent, and keeps archived projects and logged hours", async () => {
+      const org = await tAdmin.organizations.create({ name: "Cliente set 2" });
+      const a = await tAdmin.projects.create({ organizationId: org.id, name: "A" });
+      const b = await tAdmin.projects.create({ organizationId: org.id, name: "B" });
+      const archived = await tAdmin.projects.create({ organizationId: org.id, name: "C arquivado" });
+      await tAdmin.projectMembers.add(archived.id, bia.userId);
+      await tAdmin.projects.update(archived.id, { isArchived: true });
+      const hours = (await db.select().from(timeEntries).where(eq(timeEntries.userId, bia.userId))).length;
+
+      await tAdmin.projectMembers.setForMember(bia.userId, [a.id, b.id]);
+      await tAdmin.projectMembers.setForMember(bia.userId, [a.id, b.id]);
+      expect(await projectIdsOf(bia)).toEqual(expect.arrayContaining([a.id, b.id, archived.id]));
+
+      await tAdmin.projectMembers.setForMember(bia.userId, [b.id]);
+      const after = await projectIdsOf(bia);
+      expect(after).toContain(b.id);
+      expect(after).toContain(archived.id); // archived memberships are not touched
+      expect(after).not.toContain(a.id);
+
+      await tAdmin.projectMembers.setForMember(bia.userId, []);
+      expect(await projectIdsOf(bia)).toEqual([archived.id]);
+      expect((await db.select().from(timeEntries).where(eq(timeEntries.userId, bia.userId))).length).toBe(hours);
+    });
+
+    it("refuses admins, removed members, other workspaces' people and projects, and non-admin callers", async () => {
+      await expect(tAdmin.projectMembers.setForMember(admin.userId, [open.id])).rejects.toBeInstanceOf(ValidationError);
+      await expect(tAdmin.projectMembers.setForMember(gone.userId, [open.id])).rejects.toBeInstanceOf(NotFoundError);
+      await expect(tAdmin.projectMembers.setForMember(other.userId, [open.id])).rejects.toBeInstanceOf(NotFoundError);
+      await expect(tAdmin.projectMembers.setForMember(ana.userId, ["00000000-0000-4000-8000-000000000000"])).rejects.toBeInstanceOf(NotFoundError);
+      const foreignProject = await tOther.projects.create({ organizationId: (await tOther.organizations.create({ name: "Estrangeiro" })).id, name: "Fora" });
+      await expect(tAdmin.projectMembers.setForMember(ana.userId, [foreignProject.id])).rejects.toBeInstanceOf(NotFoundError);
+      await expect(tAna.projectMembers.setForMember(ana.userId, [open.id])).rejects.toBeInstanceOf(ForbiddenError);
+    });
+  });
+
   describe("members overview", () => {
     it("lists active members with their projects, and leaves out removed ones", async () => {
       const overview = await tAdmin.projectMembers.overview();

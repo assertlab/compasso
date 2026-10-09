@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, isNull, notInArray, type SQL, sql } from "drizzle-orm";
 import { organizations, projectMembers, projects, users, workspaceMembers } from "@/db/schema";
 import { displayName } from "@/lib/display-name";
-import { ForbiddenError, NotFoundError } from "./errors";
+import { ForbiddenError, NotFoundError, ValidationError } from "./errors";
 import type { TenantContext, TenantDb } from "./tenant";
 
 export type MemberOverview = Participant & {
@@ -102,6 +102,50 @@ export function createProjectMembers(db: TenantDb, ctx: TenantContext, deps: { g
         ...toParticipant(m),
         projects: links.filter((l) => l.userId === m.userId).map((l) => ({ id: l.id, name: l.name, color: l.color, clientName: l.clientName, isArchived: l.isArchived })),
       }));
+    },
+
+    /** Active (not archived) projects with their client, to offer in the "projects of this member" picker. */
+    async assignableProjects(): Promise<{ id: string; name: string; color: string; clientName: string }[]> {
+      requireAdmin();
+      return db
+        .select({ id: projects.id, name: projects.name, color: projects.color, clientName: organizations.name })
+        .from(projects)
+        .innerJoin(organizations, eq(organizations.id, projects.organizationId))
+        .where(and(eq(projects.workspaceId, ws), eq(projects.isArchived, false)))
+        .orderBy(asc(organizations.name), asc(projects.name));
+    },
+
+    /**
+     * Sets, in one go, which active projects a member takes part in. Archived projects are left as they are, and hours
+     * already logged are never touched. Admins are unrestricted, so there is nothing to set for them. Not atomic
+     * (neon-http): additions run first, so an interruption never leaves the person with fewer projects than before.
+     */
+    async setForMember(userId: string, projectIds: string[]): Promise<void> {
+      requireAdmin();
+      const [member] = await activeMembers(eq(users.id, userId));
+      if (!member) throw new NotFoundError("Member");
+      if (member.role === "admin") throw new ValidationError({ userId: "Administradores já têm acesso a todos os projetos." });
+
+      const active = await db
+        .select({ id: projects.id })
+        .from(projects)
+        .where(and(eq(projects.workspaceId, ws), eq(projects.isArchived, false)));
+      const activeIds = active.map((p) => p.id);
+      const wanted = [...new Set(projectIds)];
+      if (wanted.some((id) => !activeIds.includes(id))) throw new NotFoundError("Project");
+
+      if (wanted.length > 0) {
+        await db
+          .insert(projectMembers)
+          .values(wanted.map((projectId) => ({ workspaceId: ws, projectId, userId })))
+          .onConflictDoNothing();
+      }
+      const unwanted = activeIds.filter((id) => !wanted.includes(id));
+      if (unwanted.length > 0) {
+        await db
+          .delete(projectMembers)
+          .where(and(eq(projectMembers.workspaceId, ws), eq(projectMembers.userId, userId), inArray(projectMembers.projectId, unwanted)));
+      }
     },
 
     async add(projectId: string, userId: string): Promise<void> {
