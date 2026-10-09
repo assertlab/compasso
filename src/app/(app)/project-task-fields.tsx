@@ -61,6 +61,9 @@ export function ProjectTaskFields({
           })}
         </select>
         {errors.projectId && <p className="text-sm text-destructive">{errors.projectId}</p>}
+        {projects.length === 0 && !errors.projectId && (
+          <p className="text-xs text-muted-foreground">Você ainda não participa de nenhum projeto. Peça a um administrador para incluir você.</p>
+        )}
       </div>
       <div className="grid gap-1.5">
         <select
