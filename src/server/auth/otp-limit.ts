@@ -13,7 +13,10 @@ export const OTP_EMAIL_LIMITS = [
   { name: "day", windowMs: 24 * 60 * 60 * 1000, max: 20 },
 ] as const;
 
-const keyFor = (name: string, email: string) => `otp-email:${name}:${createHash("sha256").update(email.trim().toLowerCase()).digest("hex")}`;
+/** Stable, non-reversible identifier of an address, for counter keys and logs (never the address itself). */
+export const hashEmail = (email: string) => createHash("sha256").update(email.trim().toLowerCase()).digest("hex");
+
+const keyFor = (name: string, email: string) => `otp-email:${name}:${hashEmail(email)}`;
 
 /** Registers one code request for `email`. Returns false when any window is over its cap (the request must be refused). */
 export async function consumeOtpQuota(db: Db, email: string, now = Date.now()): Promise<boolean> {

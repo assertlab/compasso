@@ -96,3 +96,67 @@ describe("auth hardening", () => {
     expect(created.emailVerified).toBe(true);
   });
 });
+
+/** Second audit (COMP-013): the OTP plugin's password-reset and e-mail-change routes are closed over HTTP. */
+describe("unused OTP routes (COMP-013)", () => {
+  let db: TestDb;
+  let auth: ReturnType<typeof createAuth>;
+  const mails: { to: string; subject: string; text: string }[] = [];
+
+  beforeAll(async () => {
+    db = await createTestDb();
+    auth = createAuth({
+      db: db as unknown as Db,
+      nextJsCookies: false,
+      env: getAuthEnv({ NODE_ENV: "test", BETTER_AUTH_SECRET: "test-secret-test-secret-test-secret-123", BETTER_AUTH_URL: "http://localhost:3000" }),
+      send: async (m) => {
+        mails.push(m);
+      },
+    });
+    // a registered address: the routes must stay shut for it, not only for strangers
+    await auth.api.sendVerificationOTP({ body: { email: "registered@example.com", type: "sign-in" } });
+    await new Promise((r) => setTimeout(r, 20));
+    const otp = /(\d{6})/.exec(mails[0].text)![1];
+    await auth.api.signInEmailOTP({ body: { email: "registered@example.com", otp } });
+  });
+
+  const post = (path: string, body: unknown) =>
+    auth.handler(
+      new Request(`http://localhost:3000/api/auth${path}`, {
+        method: "POST",
+        headers: { "content-type": "application/json", origin: "http://localhost:3000" },
+        body: JSON.stringify(body),
+      }),
+    );
+
+  it.each([
+    "/email-otp/request-password-reset",
+    "/forget-password/email-otp",
+    "/email-otp/reset-password",
+    "/email-otp/request-email-change",
+    "/email-otp/change-email",
+  ])("answers 404 on %s and sends nothing", async (path) => {
+    mails.length = 0;
+    const res = await post(path, { email: "registered@example.com", otp: "123456", password: "Sup3rSecret!pw", newEmail: "x@example.com" });
+    expect(res.status).toBe(404);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(mails).toHaveLength(0);
+  });
+
+  it("still serves the sign-in code route over HTTP", async () => {
+    mails.length = 0;
+    const res = await post("/email-otp/send-verification-otp", { email: "registered@example.com", type: "sign-in" });
+    expect(res.status).toBe(200);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(mails).toHaveLength(1);
+  });
+
+  it("never mails a code for a flow other than sign-in", async () => {
+    mails.length = 0;
+    for (const type of ["forget-password", "email-verification", "change-email"] as const) {
+      await auth.api.sendVerificationOTP({ body: { email: "registered@example.com", type } }).catch(() => undefined);
+    }
+    await new Promise((r) => setTimeout(r, 20));
+    expect(mails).toHaveLength(0);
+  });
+});
