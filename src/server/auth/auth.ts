@@ -104,6 +104,11 @@ export function createAuth({
               .set({ removedAt: now, updatedAt: now })
               .where(and(eq(workspaceMembers.workspaceId, ws.id), eq(workspaceMembers.userId, appUser.id), isNull(workspaceMembers.removedAt)));
           },
+          // Deleting an organization archives its workspace: every record stays, access is blocked (ADR-034). Terminal.
+          afterDeleteOrganization: async ({ organization: org }) => {
+            const now = new Date();
+            await db.update(workspaces).set({ archivedAt: now, updatedAt: now }).where(and(eq(workspaces.authOrgId, org.id), isNull(workspaces.archivedAt)));
+          },
         },
       }),
       ...(nextJsCookies ? [nextCookies()] : []), // must be the last plugin

@@ -44,7 +44,7 @@ const updatedAt = () =>
 
 export const users = pgTable("users", {
   id: id(),
-  /** Clerk user id. Nullable since the move to Better Auth (ADR-033): people created after the switch have only `auth_id`. */
+  /** Legacy Clerk user id, unused by the code since ADR-034; dropped in the contract migration (PR 5). */
   clerkId: text("clerk_id").unique(),
   /** Better Auth user id (`auth_user.id`). Filled by the data migration script and on first sign-in (linked by e-mail). */
   authId: text("auth_id").unique(),
@@ -54,8 +54,8 @@ export const users = pgTable("users", {
   /** IANA zone, e.g. "America/Recife". Drives UI/calendar rendering. */
   timezone: text("timezone").notNull().default("America/Recife"),
   /**
-   * Logical deletion (LGPD): set when the Clerk user is deleted. The row is kept
-   * and anonymized (email/name/avatar cleared, clerk_id replaced) so historical
+   * Logical deletion (LGPD): set by `anonymizeAccount` (ADR-034). The row is kept
+   * and anonymized (email replaced, name/avatar cleared, clerk_id nulled) so historical
    * time entries stay intact and attributable to "a removed user".
    */
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -65,7 +65,7 @@ export const users = pgTable("users", {
 
 export const workspaces = pgTable("workspaces", {
   id: id(),
-  /** Tenant. Maps 1:1 to an organization of the identity provider: Clerk until the switch (`clerk_org_id`), Better Auth after (`auth_org_id`). */
+  /** Tenant. Maps 1:1 to a Better Auth organization (`auth_org_id`). `clerk_org_id` is legacy, dropped in the contract migration (PR 5). */
   clerkOrgId: text("clerk_org_id").unique(),
   authOrgId: text("auth_org_id").unique(),
   name: text("name").notNull(),
@@ -75,7 +75,7 @@ export const workspaces = pgTable("workspaces", {
    * use the timezone of the user generating them.
    */
   reportTimezone: text("report_timezone"),
-  /** Logical deletion: set when the Clerk organization is deleted. Data is retained, access is blocked. */
+  /** Logical deletion: set when the Better Auth organization is deleted (or its last member is anonymized). Data is retained, access is blocked. */
   archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),

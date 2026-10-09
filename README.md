@@ -7,7 +7,7 @@ Registro de horas simples, robusto e sem paywall. Aplicação web (PWA) para con
 ## Modelo
 
 ```
-Workspace (tenant, 1:1 com organização do Clerk)
+Workspace (tenant, 1:1 com organização do Better Auth)
   └─ Organização (empresa própria ou cliente)
        └─ Projeto
             └─ Tarefa
@@ -18,7 +18,7 @@ O membro vê só as próprias horas; o admin vê as de todos.
 
 ## Stack
 
-Next.js (App Router, TypeScript estrito) · Tailwind CSS · Drizzle ORM + Neon (PostgreSQL) · Clerk (autenticação e organizações) · Zod · Vitest · IBM Plex (fontes self-hosted).
+Next.js (App Router, TypeScript estrito) · Tailwind CSS · Drizzle ORM + Neon (PostgreSQL) · Better Auth (e-mail com código, Google/GitHub e organizações) · Zod · Vitest · IBM Plex (fontes self-hosted).
 
 ## Começando
 

@@ -17,8 +17,8 @@ const schema = z.object({
 export type AuthEnv = z.infer<typeof schema> & { BETTER_AUTH_URL: string };
 
 /**
- * Kept apart from `getEnv()` on purpose: until the switch from Clerk (ADR-033) a production deploy without these
- * variables must keep working. In production the secret and the public URL are mandatory.
+ * Kept apart from `getEnv()` (database only) so tooling that just needs the DB does not require auth variables.
+ * In production the secret and the public URL are mandatory.
  */
 export function getAuthEnv(source: Record<string, string | undefined> = process.env): AuthEnv {
   const parsed = schema.safeParse(source);
