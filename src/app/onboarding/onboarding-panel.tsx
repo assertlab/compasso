@@ -40,8 +40,7 @@ export function OnboardingPanel({ email, initialName }: { email: string; initial
 
   async function enter(organizationId: string) {
     await run(() => authClient.organization.setActive({ organizationId }), "Não foi possível abrir o workspace.", () => {
-      router.replace("/");
-      router.refresh();
+      window.location.replace("/");
     });
   }
 
@@ -56,8 +55,7 @@ export function OnboardingPanel({ email, initialName }: { email: string; initial
       },
       "Não foi possível criar o workspace.",
       () => {
-        router.replace("/");
-        router.refresh();
+        window.location.replace("/");
       },
     );
   }

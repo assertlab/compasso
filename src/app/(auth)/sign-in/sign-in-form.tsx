@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,8 +9,9 @@ import { authClient } from "@/lib/auth-client";
 
 type Providers = { google: boolean; github: boolean };
 
+// After signing in or out, navigate with a full page load instead of router.replace(): Next keeps the state of
+// pages the person left (a stale "Entrando…" form) and a client cache that may hold the previous account's pages.
 export function SignInForm({ next, providers, socialFailed }: { next: string; providers: Providers; socialFailed?: boolean }) {
-  const router = useRouter();
   const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -37,8 +37,7 @@ export function SignInForm({ next, providers, socialFailed }: { next: string; pr
       setPending(false);
       return setError("Código inválido ou expirado.");
     }
-    router.replace(next);
-    router.refresh();
+    window.location.replace(next);
   }
 
   async function social(provider: "google" | "github") {
@@ -49,7 +48,7 @@ export function SignInForm({ next, providers, socialFailed }: { next: string; pr
   return (
     <Card className="w-[25rem] max-w-full">
       <CardHeader>
-        <CardTitle>Entrar no Compasso</CardTitle>
+        <CardTitle>Entrar ou criar conta</CardTitle>
         <CardDescription>
           {step === "email" ? "Enviamos um código de 6 dígitos para o seu e-mail. Sem senha." : `Digite o código enviado para ${email.trim()}.`}
         </CardDescription>
@@ -117,7 +116,6 @@ export function SignInForm({ next, providers, socialFailed }: { next: string; pr
 
 /** The signed-in person was refused (deleted account or archived workspace). Offer to sign out instead of looping. */
 export function UnavailableNotice() {
-  const router = useRouter();
   return (
     <Card className="w-[25rem] max-w-full">
       <CardHeader>
@@ -128,8 +126,7 @@ export function UnavailableNotice() {
         <Button
           onClick={async () => {
             await authClient.signOut();
-            router.replace("/sign-in");
-            router.refresh();
+            window.location.replace("/sign-in");
           }}
         >
           Sair

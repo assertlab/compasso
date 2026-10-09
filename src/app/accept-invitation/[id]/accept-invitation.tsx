@@ -21,8 +21,7 @@ export function AcceptInvitation({ invitationId, email }: { invitationId: string
       return setError(`Não foi possível aceitar. O convite precisa ser para ${email}, e pode ter expirado ou sido cancelado.`);
     }
     await authClient.organization.setActive({ organizationId: data.invitation.organizationId });
-    router.replace("/");
-    router.refresh();
+    window.location.replace("/");
   }
 
   return (
