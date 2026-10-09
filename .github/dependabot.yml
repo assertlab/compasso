@@ -12,6 +12,11 @@ updates:
     groups:
       minor-and-patch:
         update-types: [minor, patch]
+    # Major bumps (typescript, eslint, @types/node, ...) are upgrades with their own plan, not weekly noise: @types/node must also
+    # follow the Node line in .nvmrc, not the newest release. Security advisories still open PRs regardless of this rule.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     commit-message:
       prefix: "chore(deps)"
   - package-ecosystem: github-actions
