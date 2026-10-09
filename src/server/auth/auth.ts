@@ -9,6 +9,7 @@ import { getDb, type Db } from "@/db";
 import * as authSchema from "@/db/auth-schema";
 import { users, workspaceMembers, workspaces } from "@/db/schema";
 import { getAuthEnv } from "./env";
+import { invitationText, INVITATION_SUBJECT } from "./invite-mail";
 import { consumeOtpQuota } from "./otp-limit";
 import { sendMail, type Mailer } from "./mail";
 import { stripProviderTokens } from "./strip-tokens";
@@ -48,7 +49,11 @@ export function createAuth({
       storage: "database",
       window: 60,
       max: 100,
-      customRules: { "/email-otp/send-verification-otp": { window: 60, max: 3 } },
+      customRules: {
+        "/email-otp/send-verification-otp": { window: 60, max: 3 },
+        "/organization/invite-member": { window: 60, max: 10 },
+        "/organization/create": { window: 3600, max: 10 },
+      },
     },
     hooks: {
       // Runs before the code exists, so a refused request neither rotates nor invalidates a valid code. Same answer for every
@@ -108,11 +113,14 @@ export function createAuth({
       }),
       organization({
         requireEmailVerificationOnInvitation: true,
+        // Abuse caps (COMP-004): signing up is open, so a person cannot spawn unlimited workspaces and invitations.
+        organizationLimit: 5,
+        invitationLimit: 20,
         async sendInvitationEmail({ id, email, organization: org, inviter }) {
           await send({
             to: email,
-            subject: `${inviter.user.name || inviter.user.email} convidou você para ${org.name} no Compasso`,
-            text: `Aceite o convite: ${baseURL}/accept-invitation/${id}\n(expira em 48 horas)`,
+            subject: INVITATION_SUBJECT,
+            text: invitationText({ inviter: inviter.user.name || inviter.user.email, workspace: org.name, link: `${baseURL}/accept-invitation/${id}` }),
           });
         },
         organizationHooks: {
