@@ -109,6 +109,12 @@ export function OnboardingPanel({ email, initialName }: { email: string; initial
       <Card>
         <CardHeader>
           <CardTitle>Criar um workspace</CardTitle>
+          {orgs.data && orgs.data.length === 0 && (
+            <CardDescription>
+              Você ainda não faz parte de nenhum workspace. Se esperava entrar em um que já existe, peça um convite ao administrador, para o e-mail {email}.
+              Para começar do zero, crie um workspace novo (ele nasce vazio).
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent>
           <form onSubmit={create} className="grid gap-3">

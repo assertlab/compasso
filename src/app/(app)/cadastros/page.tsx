@@ -53,7 +53,7 @@ async function Cadastros({ searchParams }: Pick<PageProps<"/cadastros">, "search
       {tab === "clientes" && <OrganizationsPanel {...panel} />}
       {tab === "projetos" && <ProjectsPanel {...panel} />}
       {tab === "tags" && <TagsPanel {...panel} />}
-      {tab === "membros" && isAdmin && <MembersPanel tenant={tenant} />}
+      {tab === "membros" && isAdmin && <MembersPanel tenant={tenant} workspaceId={ctx.workspaceId} currentUserId={ctx.userId} />}
     </section>
   );
 }

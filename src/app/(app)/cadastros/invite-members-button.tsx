@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { authClient } from "@/lib/auth-client";
+import { INVITATIONS_CHANGED } from "./pending-invitations";
 
 /**
  * Sends an e-mail invitation through Better Auth (the organization plugin; the invite expires in 48 h and only
- * the invited e-mail can accept it). Listing/revoking pending invites and changing roles arrive with PR 3 (ADR-033).
+ * the invited e-mail can accept it). Pending invites are listed (and can be resent or cancelled) by PendingInvitations.
  */
 export function InviteMembersButton() {
   const [open, setOpen] = useState(false);
@@ -29,6 +30,7 @@ export function InviteMembersButton() {
     if (error) return setMessage({ ok: false, text: "Não foi possível enviar o convite. Confira o e-mail e se você é administrador." });
     setMessage({ ok: true, text: `Convite enviado para ${email.trim()}. Vale por 48 horas.` });
     setEmail("");
+    window.dispatchEvent(new Event(INVITATIONS_CHANGED));
   }
 
   return (
