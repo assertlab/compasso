@@ -34,11 +34,12 @@ export function AccountMenu() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" className="min-w-0 gap-2 px-2" aria-label="Conta e workspace">
+        <Button variant="ghost" className="min-w-0 gap-2 px-2">
           <span className="hidden min-w-0 max-w-40 truncate text-sm sm:inline">{active.data?.name ?? ""}</span>
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold" aria-hidden>
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
             {initials(user?.name, user?.email)}
           </span>
+          <span className="sr-only">Conta e workspace</span>
         </Button>
       </DialogTrigger>
       <DialogContent>
