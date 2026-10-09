@@ -4,8 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { ActionButton } from "./entity-dialog";
 import { setOrganizationArchived, setProjectArchived } from "./actions";
 import { OrganizationDialog, ProjectDialog, TagDialog } from "./entity-dialogs";
-import { getDb } from "@/db";
-import { authRolesByUser } from "@/server/auth/member-roles";
+import { workspaceAuthRoles } from "@/server/workspace-auth-roles";
 import { InviteMembersButton } from "./invite-members-button";
 import { MemberAccessDialog } from "./member-access-dialog";
 import { PendingInvitations } from "./pending-invitations";
@@ -157,7 +156,7 @@ export async function MembersPanel({ tenant, workspaceId, currentUserId }: { ten
   const [members, assignable, authRoles] = await Promise.all([
     tenant.projectMembers.overview(),
     tenant.projectMembers.assignableProjects(),
-    authRolesByUser(getDb(), workspaceId),
+    workspaceAuthRoles(workspaceId),
   ]);
   return (
     <div className="flex flex-col gap-3">

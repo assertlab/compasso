@@ -1,0 +1,24 @@
+# Audit COMP-007: keep dependencies and CI actions current. Updates arrive as PRs through the normal flow (CI + review);
+# `develop` is the production branch, so nothing here deploys on its own.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "chore(deps)"
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: "chore(ci)"
