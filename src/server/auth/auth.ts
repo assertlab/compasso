@@ -75,7 +75,7 @@ export function createAuth({
           // Not awaited on purpose (timing attacks), but kept alive with after(): on Vercel the function can be frozen
           // as soon as the response is sent, which silently drops a fire-and-forget fetch. Errors never include the body.
           const task = send({ to: email, subject: "Seu código de acesso ao Compasso", text: `Seu código: ${otp}\nVálido por 5 minutos.` }).catch(
-            (e: unknown) => console.error("[auth] failed to send sign-in code", e instanceof Error ? e.message : e),
+            (e: unknown) => console.error("[auth] failed to send sign-in code", e instanceof Error ? `${e.message}${e.cause ? ` (cause: ${String(e.cause)})` : ""}` : e),
           );
           try {
             after(task);
