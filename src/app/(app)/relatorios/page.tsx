@@ -149,7 +149,9 @@ async function Reports({ searchParams }: Pick<PageProps<"/relatorios">, "searchP
                   <TableHead>Descrição</TableHead>
                   <TableHead>Início–fim</TableHead>
                   <TableHead className="text-right">Duração</TableHead>
-                  {isAdmin && <TableHead className="w-10" />}
+                  {isAdmin && <TableHead className="w-10">
+                    <span className="sr-only">Ações</span>
+                  </TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
