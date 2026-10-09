@@ -91,9 +91,9 @@ function SharesCard({ title, items }: { title: string; items: ShareItem[] }) {
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <ul className="grid gap-3">
+        <ul className="grid grid-cols-1 gap-3">
           {items.map((i) => (
-            <li key={i.id} title={`${i.label}: ${formatHms(i.seconds)} (${formatPercent(i.percent)})`} className="grid gap-1">
+            <li key={i.id} title={`${i.label}: ${formatHms(i.seconds)} (${formatPercent(i.percent)})`} className="grid min-w-0 grid-cols-1 gap-1">
               <div className="flex items-baseline justify-between gap-3 text-sm">
                 <span className="min-w-0 truncate">
                   {i.label}
