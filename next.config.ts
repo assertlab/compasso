@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import type { NextConfig } from "next";
+import { securityHeaders } from "./src/lib/security-headers";
 
 const { version } = JSON.parse(readFileSync("./package.json", "utf8")) as { version: string };
 
@@ -17,6 +18,7 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   async headers() {
     return [
+      { source: "/:path*", headers: securityHeaders },
       {
         // The browser must always revalidate the worker script so updates reach installed PWAs.
         source: "/sw.js",
