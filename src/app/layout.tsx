@@ -1,4 +1,3 @@
-import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { OfflineNotice } from "@/components/offline-notice";
@@ -52,15 +51,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <ClerkProvider
-            signInUrl="/sign-in"
-            signUpUrl="/sign-up"
-            signInFallbackRedirectUrl="/"
-            signUpFallbackRedirectUrl="/"
-          >
-            <OfflineNotice />
-            {children}
-          </ClerkProvider>
+          <OfflineNotice />
+          {children}
           <ServiceWorkerRegister />
         </ThemeProvider>
       </body>

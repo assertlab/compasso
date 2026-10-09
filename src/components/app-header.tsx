@@ -1,6 +1,6 @@
-import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { Suspense } from "react";
+import { AccountMenu } from "@/components/account-menu";
 import { AppMobileNav } from "@/components/app-sidebar";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -17,18 +17,8 @@ export function AppHeader() {
           <Logo />
         </Link>
         <div className="ml-auto flex min-w-0 items-center gap-2">
-          {/* Clerk's widgets read the pathname on the client: keep them behind Suspense (Next 16 cacheComponents). */}
-          <Suspense fallback={<div className="h-9 w-40 animate-pulse rounded-md bg-muted" aria-hidden />}>
-            <OrganizationSwitcher
-              hidePersonal
-              afterSelectOrganizationUrl="/"
-              afterCreateOrganizationUrl="/"
-            />
-          </Suspense>
           <ThemeToggle />
-          <Suspense fallback={<div className="size-8 animate-pulse rounded-full bg-muted" aria-hidden />}>
-            <UserButton />
-          </Suspense>
+          <AccountMenu />
         </div>
       </div>
     </header>
