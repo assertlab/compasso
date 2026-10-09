@@ -4,6 +4,7 @@ import { AccountMenu } from "@/components/account-menu";
 import { AppMobileNav } from "@/components/app-sidebar";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { VersionBadge } from "@/components/version-badge";
 
 /** Top bar: hamburger and logo below `lg` (the menu lives in the sidebar from `lg`), workspace, theme and account always. */
 export function AppHeader() {
@@ -16,6 +17,7 @@ export function AppHeader() {
         <Link href="/" aria-label="Compasso — início" className="shrink-0 lg:hidden">
           <Logo />
         </Link>
+        <VersionBadge className="lg:hidden" />
         <div className="ml-auto flex min-w-0 items-center gap-2">
           <ThemeToggle />
           <AccountMenu />
