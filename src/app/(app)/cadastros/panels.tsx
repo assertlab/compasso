@@ -4,7 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { ActionButton } from "./entity-dialog";
 import { setOrganizationArchived, setProjectArchived } from "./actions";
 import { OrganizationDialog, ProjectDialog, TagDialog } from "./entity-dialogs";
+import { getDb } from "@/db";
+import { authRolesByUser } from "@/server/auth/member-roles";
 import { InviteMembersButton } from "./invite-members-button";
+import { MemberAccessDialog } from "./member-access-dialog";
+import { PendingInvitations } from "./pending-invitations";
 import { MemberProjectsDialog } from "./member-projects-dialog";
 import type { Tenant } from "@/server/tenant";
 
@@ -149,26 +153,37 @@ export async function TagsPanel({ tenant, canEdit, includeArchived, basePath }: 
   );
 }
 
-export async function MembersPanel({ tenant }: { tenant: Tenant }) {
-  const [members, assignable] = await Promise.all([tenant.projectMembers.overview(), tenant.projectMembers.assignableProjects()]);
+export async function MembersPanel({ tenant, workspaceId, currentUserId }: { tenant: Tenant; workspaceId: string; currentUserId: string }) {
+  const [members, assignable, authRoles] = await Promise.all([
+    tenant.projectMembers.overview(),
+    tenant.projectMembers.assignableProjects(),
+    authRolesByUser(getDb(), workspaceId),
+  ]);
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <p className="min-w-0 flex-1 basis-72 text-sm text-muted-foreground">
-          Pessoas do laboratório e os projetos em que participam. Quem entra por convite começa sem projetos: use &ldquo;Projetos&rdquo; para liberar. Em
-          &ldquo;Convidar pessoas&rdquo;, abra a aba Membros para convidar por e-mail, escolher admin ou membro e ver ou cancelar convites pendentes.
+          Pessoas do laboratório e os projetos em que participam. Quem entra por convite começa sem projetos: use &ldquo;Projetos&rdquo; para liberar.
+          Use &ldquo;Acesso&rdquo; para mudar o papel (administrador ou membro) ou remover alguém; as horas já lançadas ficam.
         </p>
         <InviteMembersButton />
       </div>
+      <PendingInvitations />
       <List>
         {members.map((member) => {
+          const authRole = authRoles.get(member.userId) ?? member.role;
           const active = member.projects.filter((project) => !project.isArchived);
           return (
             <Row key={member.userId}>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">
                   {member.name}
-                  {member.role === "admin" && <span className="ml-2 text-xs font-normal text-muted-foreground">admin</span>}
+                  {authRole === "owner" ? (
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">proprietário</span>
+                  ) : (
+                    member.role === "admin" && <span className="ml-2 text-xs font-normal text-muted-foreground">admin</span>
+                  )}
+                  {member.userId === currentUserId && <span className="ml-2 text-xs font-normal text-muted-foreground">(você)</span>}
                 </p>
                 <p className="truncate text-sm text-muted-foreground">{member.email}</p>
               </div>
@@ -197,6 +212,7 @@ export async function MembersPanel({ tenant }: { tenant: Tenant }) {
                   highlight={active.length === 0}
                 />
               )}
+              {authRole !== "owner" && member.userId !== currentUserId && <MemberAccessDialog email={member.email} name={member.name} role={member.role} />}
             </Row>
           );
         })}
