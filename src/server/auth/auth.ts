@@ -1,5 +1,5 @@
 import { APIError, betterAuth } from "better-auth";
-import { createAuthMiddleware } from "better-auth/api";
+import { createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { after } from "next/server";
@@ -9,6 +9,7 @@ import { getDb, type Db } from "@/db";
 import * as authSchema from "@/db/auth-schema";
 import { users, workspaceMembers, workspaces } from "@/db/schema";
 import { getAuthEnv } from "./env";
+import { INVITATION_LISTING_PATHS, mayListInvitations } from "./invitation-access";
 import { invitationText, INVITATION_SUBJECT } from "./invite-mail";
 import { consumeOtpQuota, hashEmail } from "./otp-limit";
 import { sendMail, type Mailer } from "./mail";
@@ -84,6 +85,19 @@ export function createAuth({
       // gets ~60 guesses per address per day. Every refusal is logged (hashed address) so a campaign is visible. An anti-bot
       // challenge on this endpoint is the real fix and is planned before launch.
       before: createAuthMiddleware(async (ctx) => {
+        // Pending invitations carry the e-mail of people who have not joined: admins only (COMP-012). `get-full-organization`
+        // returns them too, so the account menu must not call it (it reads the organization list instead).
+        if ((INVITATION_LISTING_PATHS as readonly string[]).includes(ctx.path)) {
+          const session = await getSessionFromCtx(ctx);
+          if (!session) return; // the endpoint answers 401 itself
+          const allowed = await mayListInvitations(db, {
+            userId: session.user.id,
+            activeOrganizationId: (session.session as { activeOrganizationId?: string | null }).activeOrganizationId,
+            query: ctx.query,
+          });
+          if (!allowed) throw new APIError("FORBIDDEN", { message: "Apenas administradores veem os convites pendentes." });
+          return;
+        }
         if (ctx.path !== "/email-otp/send-verification-otp") return;
         const email = (ctx.body as { email?: unknown } | undefined)?.email;
         if (typeof email !== "string") return;
