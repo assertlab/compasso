@@ -3,19 +3,19 @@
 Aplicação web (PWA) de registro de horas. Documentos de produto, escopo e decisões (ADRs) ficam no Projeto "Compasso" no claude.ai: `escopo-mvp-v1.md` e `plano-implementacao.md`.
 
 ## Stack
-Next.js (App Router, TS estrito), Tailwind, shadcn/ui, Drizzle ORM + Neon (PostgreSQL), Clerk, Zod, Vitest. Ler `AGENTS.md` e a documentação em `node_modules/next/dist/docs/` antes de usar APIs do Next.js.
+Next.js (App Router, TS estrito), Tailwind, shadcn/ui, Drizzle ORM + Neon (PostgreSQL), Better Auth, Zod, Vitest. Ler `AGENTS.md` e a documentação em `node_modules/next/dist/docs/` antes de usar APIs do Next.js.
 
 ## Modelo
-Workspace (tenant, 1:1 com organização do Clerk) -> Organização (empresa própria ou cliente) -> Projeto -> Tarefa. Tags são do workspace. Papéis por workspace: admin | member (membro vê só as próprias horas).
+Workspace (tenant, 1:1 com organização do Better Auth) -> Organização (empresa própria ou cliente) -> Projeto -> Tarefa. Tags são do workspace. Papéis por workspace: admin | member (membro vê só as próprias horas).
 
 ## Design
 Tokens, componentes e convenções estão em `design-system.md`; a referência viva fica em `/design` (oculta em produção). Usar apenas tokens (`bg-background`, `text-muted-foreground`...), nunca hex; vermelho só para cronômetro em andamento, ações destrutivas e alertas; horas sempre em `tabular-nums`.
 
 ## Regras
 - Toda query operacional filtra por `workspace_id`; nunca confiar em IDs do cliente sem checar o tenant.
-- Autorização por recurso, não por caminho: toda página, route handler e Server Action protegido chama `requireWorkspaceContext()` (o `proxy.ts` só expõe a sessão do Clerk, não bloqueia rotas).
+- Autorização por recurso, não por caminho: toda página, route handler e Server Action protegido chama `requireWorkspaceContext()`.
 - Dados do workspace (catálogo e, depois, registros de tempo) só pelo `getTenant()` (`src/server/get-tenant.ts`) / `createTenant()` (`src/server/tenant.ts`), nunca com `getDb()` direto em páginas, route handlers ou Server Actions. A camada carimba `workspace_id` da sessão, valida que IDs de pais pertencem ao workspace, trata IDs de outro workspace como inexistentes e restringe escrita do catálogo a admin (ADR-026). Nova tabela com `workspace_id` ganha repositório e teste de isolamento em `src/server/tenant.test.ts` (PGlite com as migrações reais).
-- Remoção sempre lógica (ADR-025): nada de DELETE físico em users/workspaces/membros. `users.deleted_at` (anonimizado, LGPD; a linha vira tombstone e mantém `clerk_id`), `workspaces.archived_at`, `workspace_members.removed_at`; consultas de acesso filtram esses campos. Escritas de identidade vêm de `src/server/clerk-sync.ts` (webhook + provisionamento).
+- Remoção sempre lógica (ADR-025): nada de DELETE físico em users/workspaces/membros. `users.deleted_at` (anonimizado, LGPD), `workspaces.archived_at`, `workspace_members.removed_at`; consultas de acesso filtram esses campos. Anonimização em `src/server/auth/anonymize.ts` (ADR-034; script `scripts/anonymize-user.ts`); provisionamento em `src/server/auth/workspace-context.ts`.
 - Service worker (`public/sw.js`, ADR-012): só serve `/offline` como fallback de navegação e cacheia ativos estáticos imutáveis; nunca cachear HTML de páginas do app, RSC, `/api` nem dados autenticados. Só registra em produção (para testar: `npm run build && npm start`).
 - Instantes em UTC (timestamptz); fuso IANA no usuário e no registro. Duração nunca é armazenada: derivar de `ended_at - started_at` (ver `src/lib/time.ts`).
 - Um único timer ativo por usuário (índice único parcial).

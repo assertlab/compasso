@@ -12,10 +12,10 @@ describe("migrateClerkToAuth", () => {
 
   beforeEach(async () => {
     db = await createTestDb();
-    const a = await seedWorkspace(db, "a"); // first admin of workspace a
-    await addMember(db, a.workspaceId, "a2", "admin");
-    await addMember(db, a.workspaceId, "a3", "member");
-    await seedWorkspace(db, "b");
+    const a = await seedWorkspace(db, "a", "clerk"); // first admin of workspace a
+    await addMember(db, a.workspaceId, "a2", "admin", "clerk");
+    await addMember(db, a.workspaceId, "a3", "member", "clerk");
+    await seedWorkspace(db, "b", "clerk");
   });
 
   const roles = async () => (await db.select().from(authSchema.member)).map((m) => m.role).sort();

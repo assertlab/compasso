@@ -13,25 +13,25 @@ export async function createTestDb() {
 
 export type TestDb = Awaited<ReturnType<typeof createTestDb>>;
 
-/** A workspace with one member, as the Clerk sync would have created them. */
-export async function seedWorkspace(db: TestDb, label: string) {
+/** `provider: "clerk"` seeds a pre-migration (Clerk-identified) row; only the Clerk data-migration test needs it. */
+export async function seedWorkspace(db: TestDb, label: string, provider: "auth" | "clerk" = "auth") {
   const [workspace] = await db
     .insert(workspaces)
-    .values({ clerkOrgId: `org_${label}`, name: `Workspace ${label}`, slug: `ws-${label}` })
+    .values({ ...(provider === "clerk" ? { clerkOrgId: `org_${label}` } : { authOrgId: `org_${label}` }), name: `Workspace ${label}`, slug: `ws-${label}` })
     .returning();
   const [user] = await db
     .insert(users)
-    .values({ clerkId: `user_${label}`, email: `${label}@example.com`, name: `User ${label}` })
+    .values({ ...(provider === "clerk" ? { clerkId: `user_${label}` } : { authId: `user_${label}` }), email: `${label}@example.com`, name: `User ${label}` })
     .returning();
   await db.insert(workspaceMembers).values({ workspaceId: workspace.id, userId: user.id, role: "admin" });
   return { workspaceId: workspace.id, userId: user.id };
 }
 
-/** Adds another user to an existing workspace, as the Clerk sync would have. */
-export async function addMember(db: TestDb, workspaceId: string, label: string, role: "admin" | "member" = "member") {
+/** Adds another user to an existing workspace. */
+export async function addMember(db: TestDb, workspaceId: string, label: string, role: "admin" | "member" = "member", provider: "auth" | "clerk" = "auth") {
   const [user] = await db
     .insert(users)
-    .values({ clerkId: `user_${label}`, email: `${label}@example.com`, name: `User ${label}` })
+    .values({ ...(provider === "clerk" ? { clerkId: `user_${label}` } : { authId: `user_${label}` }), email: `${label}@example.com`, name: `User ${label}` })
     .returning();
   await db.insert(workspaceMembers).values({ workspaceId, userId: user.id, role });
   return { workspaceId, userId: user.id };

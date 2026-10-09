@@ -32,7 +32,7 @@ export type ContextResult =
   | { kind: "archived" };
 
 /**
- * Same contract as the Clerk flow (`requireWorkspaceContext`): turns a Better Auth session into our own
+ * Backs `requireWorkspaceContext`: turns a Better Auth session into our own
  * user/workspace/membership rows, creating them on first access. neon-http has no transactions, so every step is
  * one idempotent statement and concurrent first requests converge on the same rows.
  */

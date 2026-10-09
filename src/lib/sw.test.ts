@@ -22,13 +22,13 @@ describe("service worker request routing", () => {
   });
 
   it("never touches API, RSC, data or non-GET requests (no authenticated data cached)", () => {
-    expect(classify(req(`${origin}/api/webhooks/clerk`, "cors", "POST"), origin)).toBe("ignore");
+    expect(classify(req(`${origin}/api/webhooks/anything`, "cors", "POST"), origin)).toBe("ignore");
     expect(classify(req(`${origin}/api/anything`), origin)).toBe("ignore");
     expect(classify(req(`${origin}/?_rsc=abc`), origin)).toBe("ignore");
     expect(classify(req(`${origin}/_next/static/x.js`, "cors", "POST"), origin)).toBe("ignore");
   });
 
-  it("ignores cross-origin requests, including Clerk", () => {
+  it("ignores cross-origin requests, including identity providers", () => {
     expect(classify(req("https://refined-turtle-6211.accounts.dev/sign-in", "navigate"), origin)).toBe("ignore");
     expect(classify(req("https://cdn.example.com/_next/static/a.js"), origin)).toBe("ignore");
   });
