@@ -17,7 +17,9 @@ export function AccountMenu() {
   const [open, setOpen] = useState(false);
   const session = authClient.useSession();
   const orgs = authClient.useListOrganizations();
-  const active = authClient.useActiveOrganization();
+  // Not `useActiveOrganization()`: that endpoint returns every member and pending invitation to every member (COMP-012).
+  const activeId = session.data?.session.activeOrganizationId;
+  const active = (orgs.data ?? []).find((org) => org.id === activeId);
 
   async function switchTo(organizationId: string) {
     await authClient.organization.setActive({ organizationId });
@@ -35,7 +37,7 @@ export function AccountMenu() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="ghost" className="min-w-0 gap-2 px-2">
-          <span className="hidden min-w-0 max-w-40 truncate text-sm sm:inline">{active.data?.name ?? ""}</span>
+          <span className="hidden min-w-0 max-w-40 truncate text-sm sm:inline">{active?.name ?? ""}</span>
           <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
             {initials(user?.name, user?.email)}
           </span>
@@ -50,7 +52,7 @@ export function AccountMenu() {
         <div className="grid gap-2">
           <p className="text-sm font-medium">Workspaces</p>
           {(orgs.data ?? []).map((org) => (
-            <Button key={org.id} variant={org.id === active.data?.id ? "secondary" : "outline"} className="justify-start" onClick={() => switchTo(org.id)}>
+            <Button key={org.id} variant={org.id === activeId ? "secondary" : "outline"} className="justify-start" onClick={() => switchTo(org.id)}>
               <Building2 aria-hidden />
               {org.name}
             </Button>
