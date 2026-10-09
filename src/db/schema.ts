@@ -44,7 +44,10 @@ const updatedAt = () =>
 
 export const users = pgTable("users", {
   id: id(),
-  clerkId: text("clerk_id").notNull().unique(),
+  /** Clerk user id. Nullable since the move to Better Auth (ADR-033): people created after the switch have only `auth_id`. */
+  clerkId: text("clerk_id").unique(),
+  /** Better Auth user id (`auth_user.id`). Filled by the data migration script and on first sign-in (linked by e-mail). */
+  authId: text("auth_id").unique(),
   email: text("email").notNull().unique(),
   name: text("name"),
   avatarUrl: text("avatar_url"),
@@ -58,12 +61,13 @@ export const users = pgTable("users", {
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
-});
+}, (t) => [check("users_identity_chk", sql`${t.clerkId} is not null or ${t.authId} is not null`)]);
 
 export const workspaces = pgTable("workspaces", {
   id: id(),
-  /** Tenant. Maps 1:1 to a Clerk organization (source of truth for membership/invites). */
-  clerkOrgId: text("clerk_org_id").notNull().unique(),
+  /** Tenant. Maps 1:1 to an organization of the identity provider: Clerk until the switch (`clerk_org_id`), Better Auth after (`auth_org_id`). */
+  clerkOrgId: text("clerk_org_id").unique(),
+  authOrgId: text("auth_org_id").unique(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   /**
@@ -75,7 +79,7 @@ export const workspaces = pgTable("workspaces", {
   archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
-});
+}, (t) => [check("workspaces_identity_chk", sql`${t.clerkOrgId} is not null or ${t.authOrgId} is not null`)]);
 
 export const workspaceMembers = pgTable(
   "workspace_members",
