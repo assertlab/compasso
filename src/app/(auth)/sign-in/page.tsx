@@ -22,7 +22,9 @@ async function SignInContent({ searchParams }: { searchParams: PageProps<"/sign-
   const next = safeNext(typeof params.next === "string" ? params.next : undefined);
   const error = typeof params.error === "string" ? params.error : undefined;
 
-  const session = await getAuth().api.getSession({ headers: await headers() });
+  // Read the request first: during prerender this is what makes the page dynamic, before any DB/env access.
+  const requestHeaders = await headers();
+  const session = await getAuth().api.getSession({ headers: requestHeaders });
   // `unavailable` means the signed-in person was refused by the app: show why instead of redirecting back (loop).
   if (error === "unavailable") return <UnavailableNotice />;
   if (session) redirect(next);

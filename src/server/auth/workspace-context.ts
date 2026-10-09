@@ -156,7 +156,9 @@ async function ensureUser(db: Db, authUser: AuthSessionLike["user"]) {
  * /onboarding when the person still has to give a name or pick a workspace.
  */
 export async function requireAuthWorkspaceContext(): Promise<WorkspaceContext> {
-  const session = await getAuth().api.getSession({ headers: await headers() });
+  // Read the request first: during prerender this is what makes the page dynamic, before any DB/env access.
+  const requestHeaders = await headers();
+  const session = await getAuth().api.getSession({ headers: requestHeaders });
   if (!session) redirect("/sign-in");
   // E-mail sign-up leaves the name empty: onboarding asks for it before anything else.
   if (!session.user.name?.trim()) redirect("/onboarding");

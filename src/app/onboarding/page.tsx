@@ -19,7 +19,9 @@ export default function OnboardingPage() {
 }
 
 async function Panel() {
-  const session = await getAuth().api.getSession({ headers: await headers() });
+  // Read the request first: during prerender this is what makes the page dynamic, before any DB/env access.
+  const requestHeaders = await headers();
+  const session = await getAuth().api.getSession({ headers: requestHeaders });
   if (!session) redirect("/sign-in");
   return <OnboardingPanel email={session.user.email} initialName={session.user.name?.trim() ?? ""} />;
 }
