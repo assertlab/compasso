@@ -87,7 +87,7 @@ export async function anonymizeAccount(db: Db, userId: string) {
   //    `auth_id` stays as an opaque dangling key; the e-mail is gone, so a new sign-up with it is a new person.
   await db
     .update(users)
-    .set({ email: anonymizedEmail(userId), name: null, avatarUrl: null, clerkId: null, deletedAt: now, updatedAt: now })
+    .set({ email: anonymizedEmail(userId), name: null, avatarUrl: null, deletedAt: now, updatedAt: now })
     .where(eq(users.id, userId));
 
   return { status: "anonymized" as const, userId, archived: plan.archive.map((w) => w.name), memberships: plan.memberships };

@@ -43,6 +43,13 @@
       "when": 1791570000000,
       "tag": "0005_auth_core",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791580066459,
+      "tag": "0006_drop_clerk_columns",
+      "breakpoints": true
     }
   ]
 }
