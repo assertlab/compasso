@@ -10,7 +10,7 @@ import * as authSchema from "@/db/auth-schema";
 import { users, workspaceMembers, workspaces } from "@/db/schema";
 import { getAuthEnv } from "./env";
 import { invitationText, INVITATION_SUBJECT } from "./invite-mail";
-import { consumeOtpQuota } from "./otp-limit";
+import { consumeOtpQuota, hashEmail } from "./otp-limit";
 import { sendMail, type Mailer } from "./mail";
 import { stripProviderTokens } from "./strip-tokens";
 
@@ -56,6 +56,16 @@ export function createAuth({
     // neon-http (ADR-003): for provider "pg" the adapter only opens transactions when `transaction: true`, which we leave off.
     database: drizzleAdapter(db, { provider: "pg", schema: authSchema }),
     socialProviders: { ...google, ...github },
+    // The OTP plugin also registers password-reset and e-mail-change routes. The product signs in by code or social only, and
+    // those routes sit outside the per-e-mail quota below: they could mail any registered address in bulk and let a distributed
+    // brute force write a password onto someone's account (COMP-013). Closed over HTTP; the server API is unaffected.
+    disabledPaths: [
+      "/email-otp/request-password-reset",
+      "/forget-password/email-otp",
+      "/email-otp/reset-password",
+      "/email-otp/request-email-change",
+      "/email-otp/change-email",
+    ],
     // Counters live in the database: serverless instances do not share memory. Sending codes is the sensitive path.
     rateLimit: {
       storage: "database",
@@ -69,13 +79,16 @@ export function createAuth({
     },
     hooks: {
       // Runs before the code exists, so a refused request neither rotates nor invalidates a valid code. Same answer for every
-      // address (no enumeration). Trade-off: someone can exhaust the quota of a target address and delay its code login for
-      // up to an hour; social sign-in still works and the alternative was a ~48% chance of guessing a code in a day (COMP-002).
+      // address (no enumeration). Trade-off (COMP-014): someone who knows an address can exhaust its quota with ~21 requests and
+      // delay its code login for up to 24 h (the daily window); social sign-in still works. Accepted: without the cap a botnet
+      // gets ~60 guesses per address per day. Every refusal is logged (hashed address) so a campaign is visible. An anti-bot
+      // challenge on this endpoint is the real fix and is planned before launch.
       before: createAuthMiddleware(async (ctx) => {
         if (ctx.path !== "/email-otp/send-verification-otp") return;
         const email = (ctx.body as { email?: unknown } | undefined)?.email;
         if (typeof email !== "string") return;
         if (!(await consumeOtpQuota(db, email))) {
+          console.warn("[auth] otp quota exceeded", { emailHash: hashEmail(email), ip: ctx.request?.headers.get("x-forwarded-for")?.split(",")[0]?.trim() });
           throw new APIError("TOO_MANY_REQUESTS", { message: "Muitos códigos pedidos para este e-mail. Tente de novo mais tarde." });
         }
       }),
@@ -118,7 +131,8 @@ export function createAuth({
         expiresIn: 300,
         allowedAttempts: 3,
         storeOTP: "hashed", // a leaked table must not hold usable codes (COMP-005)
-        async sendVerificationOTP({ email, otp }) {
+        async sendVerificationOTP({ email, otp, type }) {
+          if (type !== "sign-in") return; // no other OTP flow is used (COMP-013); never mail a code the app cannot honour
           // Not awaited on purpose (timing attacks), but kept alive with after(): on Vercel the function can be frozen
           // as soon as the response is sent, which silently drops a fire-and-forget fetch. Errors never include the body.
           const task = send({ to: email, subject: "Seu código de acesso ao Compasso", text: `Seu código: ${otp}\nVálido por 5 minutos.` }).catch(

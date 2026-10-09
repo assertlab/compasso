@@ -25,7 +25,7 @@ const eslintConfig = defineConfig([
         {
           patterns: [
             {
-              group: ["@/db", "@/db/*"],
+              group: ["@/db", "@/db/*", "**/db", "**/db/*"], // relative paths too: "../../db" must not escape the rule
               allowTypeImports: true,
               message: "Do not import the database outside src/server: go through getTenant() / createTenant() (ADR-026).",
             },
