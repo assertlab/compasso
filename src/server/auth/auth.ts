@@ -38,6 +38,18 @@ export function createAuth({
       ? { github: { clientId: env.GITHUB_CLIENT_ID, clientSecret: env.GITHUB_CLIENT_SECRET, requireEmailVerification: true } }
       : {};
 
+  /** Logical removal (LGPD): the person loses access but their time entries stay. Idempotent. */
+  async function markMemberRemoved(authOrgId: string, authUserId: string) {
+    const [ws] = await db.select({ id: workspaces.id }).from(workspaces).where(eq(workspaces.authOrgId, authOrgId));
+    const [appUser] = await db.select({ id: users.id }).from(users).where(eq(users.authId, authUserId));
+    if (!ws || !appUser) return;
+    const now = new Date();
+    await db
+      .update(workspaceMembers)
+      .set({ removedAt: now, updatedAt: now })
+      .where(and(eq(workspaceMembers.workspaceId, ws.id), eq(workspaceMembers.userId, appUser.id), isNull(workspaceMembers.removedAt)));
+  }
+
   return betterAuth({
     baseURL,
     secret: env.BETTER_AUTH_SECRET,
@@ -66,6 +78,14 @@ export function createAuth({
         if (!(await consumeOtpQuota(db, email))) {
           throw new APIError("TOO_MANY_REQUESTS", { message: "Muitos códigos pedidos para este e-mail. Tente de novo mais tarde." });
         }
+      }),
+      // `/organization/leave` deletes the auth member but, unlike `remove-member`, runs no organization hook (COMP-008): without
+      // this the person would stay "active" in the domain tables (project candidates, anonymization plan, reports).
+      after: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== "/organization/leave") return;
+        const left = ctx.context.returned as { userId?: unknown; organizationId?: unknown } | Error | undefined;
+        if (!left || left instanceof Error || typeof left.userId !== "string" || typeof left.organizationId !== "string") return;
+        await markMemberRemoved(left.organizationId, left.userId);
       }),
     },
     databaseHooks: {
@@ -125,16 +145,7 @@ export function createAuth({
         },
         organizationHooks: {
           // Logical removal (LGPD): the member loses access but their time entries stay.
-          afterRemoveMember: async ({ user, organization: org }) => {
-            const [ws] = await db.select({ id: workspaces.id }).from(workspaces).where(eq(workspaces.authOrgId, org.id));
-            const [appUser] = await db.select({ id: users.id }).from(users).where(eq(users.authId, user.id));
-            if (!ws || !appUser) return;
-            const now = new Date();
-            await db
-              .update(workspaceMembers)
-              .set({ removedAt: now, updatedAt: now })
-              .where(and(eq(workspaceMembers.workspaceId, ws.id), eq(workspaceMembers.userId, appUser.id), isNull(workspaceMembers.removedAt)));
-          },
+          afterRemoveMember: async ({ user, organization: org }) => markMemberRemoved(org.id, user.id),
           // Deleting an organization archives its workspace: every record stays, access is blocked (ADR-034). Terminal.
           afterDeleteOrganization: async ({ organization: org }) => {
             const now = new Date();
