@@ -84,7 +84,7 @@ export function SignInForm({ next, providers, socialFailed }: { next: string; pr
             <Button type="submit" disabled={pending || code.length !== 6}>
               {pending ? "Entrando…" : "Entrar"}
             </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={() => { setStep("email"); setCode(""); setError(null); }}>
+            <Button type="button" variant="ghost" size="sm" onClick={() => { setStep("email"); setCode(""); setError(null); setPending(false); }}>
               Usar outro e-mail
             </Button>
           </form>
