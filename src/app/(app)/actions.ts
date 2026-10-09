@@ -136,5 +136,6 @@ export async function restoreEntryAction(id: string): Promise<ActionState> {
 /** Autocomplete for the description field: the caller's own recent descriptions. */
 export async function searchDescriptions(prefix: string): Promise<string[]> {
   const { tenant } = await getTenant();
+  if (typeof prefix !== "string") return [];
   return tenant.timeEntries.recentDescriptions(prefix.slice(0, 100));
 }

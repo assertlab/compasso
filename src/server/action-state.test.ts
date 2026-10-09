@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { toActionState } from "./action-state";
+import { DrizzleQueryError } from "drizzle-orm/errors";
+import { describeError, toActionState } from "./action-state";
 import { isUniqueViolation } from "./db-errors";
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from "./errors";
 
@@ -43,5 +44,31 @@ describe("toActionState", () => {
     expect(state).toEqual({ ok: false, message: "Não foi possível salvar. Tente novamente." });
     expect(log).toHaveBeenCalled();
     log.mockRestore();
+  });
+
+  it("treats a malformed id (invalid uuid) as not found, not as a server error", () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const bad = new DrizzleQueryError("select * from time_entries where id = $1", ["not-a-uuid"], Object.assign(new Error("invalid input syntax for type uuid"), { code: "22P02" }));
+    expect(toActionState(bad).message).toMatch(/não encontrado/i);
+    expect(log).not.toHaveBeenCalled();
+    log.mockRestore();
+  });
+
+  it("never logs SQL parameters (COMP-006)", () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const secret = "Reunião com o cliente Fulano sobre contrato";
+    const err = new DrizzleQueryError("insert into time_entries (description) values ($1)", [secret], Object.assign(new Error("boom"), { code: "XX000" }));
+    toActionState(err);
+    const logged = JSON.stringify(log.mock.calls);
+    expect(logged).not.toContain(secret);
+    expect(logged).not.toContain("insert into");
+    expect(logged).toContain("XX000");
+    log.mockRestore();
+  });
+
+  it("describeError keeps message and stack for our own errors only", () => {
+    expect(describeError(new Error("ours"))).toMatchObject({ kind: "error", message: "ours" });
+    const db = describeError(new DrizzleQueryError("select 1", ["x"], undefined));
+    expect(db).toEqual({ kind: "database", name: "Error", code: undefined, constraint: undefined });
   });
 });
