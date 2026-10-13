@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { buildCsv, describeFilters, EXPORT_FORMATS, exportFileName, formatDateBr, toExportRows, type ExportFormat } from "@/lib/report-export";
 import { summarize } from "@/lib/report";
 import { buildDayMatrix } from "@/lib/report-days";
+import { consumeExportQuota } from "@/server/export-limit";
 import { getTenant } from "@/server/get-tenant";
 import { buildPdf } from "@/server/report-pdf";
 import { buildXlsx } from "@/server/report-xlsx";
@@ -30,6 +31,13 @@ export async function GET(request: NextRequest) {
   if (!format || !EXPORT_FORMATS.includes(format)) return new Response("Formato inválido.", { status: 400 });
 
   const { ctx, tenant } = await getTenant();
+  const quota = await consumeExportQuota(ctx.userId);
+  if (!quota.allowed) {
+    return new Response("Muitas exportações em pouco tempo. Aguarde um instante e tente de novo.", {
+      status: 429,
+      headers: { "Retry-After": String(quota.retryAfterSeconds), "Cache-Control": "no-store" },
+    });
+  }
   const [report, catalog] = await Promise.all([loadReport(tenant, ctx, paramsToRecord(params)), loadCatalog(tenant)]);
   if (report.periodError) return new Response(report.periodError, { status: 400 });
 
