@@ -23,6 +23,8 @@ export function SignInForm({ next, providers, turnstileSiteKey, socialFailed }: 
   const { containerRef, token: challengeToken, status: challengeStatus, reset: resetChallenge } = useTurnstile(turnstileSiteKey);
   // With a site key the request needs a fresh token (single use); without one the challenge is off.
   const needsToken = Boolean(turnstileSiteKey);
+  // Waiting for the challenge; if it failed to load the button stays usable so the server's answer explains what to do.
+  const verifying = needsToken && !challengeToken && challengeStatus !== "error";
 
   async function sendCode(event: FormEvent) {
     event.preventDefault();
@@ -77,8 +79,8 @@ export function SignInForm({ next, providers, turnstileSiteKey, socialFailed }: 
               <Input id="email" type="email" required autoFocus autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
             {needsToken && <div ref={containerRef} />}
-            <Button type="submit" disabled={pending || (needsToken && !challengeToken && challengeStatus !== "error")}>
-              {pending ? "Enviando…" : needsToken && !challengeToken && challengeStatus !== "error" ? "Verificando…" : "Receber código"}
+            <Button type="submit" disabled={pending || verifying}>
+              {pending ? "Enviando…" : verifying ? "Verificando…" : "Receber código"}
             </Button>
           </form>
         ) : (
