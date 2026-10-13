@@ -30,5 +30,6 @@ Tokens, componentes e convenções estão em `design-system.md`; a referência v
 - `main` = produção (só recebe `release/*` e `hotfix/*`); `develop` = integração.
 - Trabalho novo: `feature/<nome>` a partir de `develop`, sempre via PR para `develop`. Nunca commitar direto em `main` ou `develop`.
 - Release: `release/x.y.z` a partir de `develop` → PR para `main` + tag + merge de volta em `develop`. Correção urgente: `hotfix/*` a partir de `main`.
+- Versões 0.x (enquanto a Vercel publica a `develop`): PR `chore/release-x.y.z` com a versão em `package.json` e a entrada no `CHANGELOG.md`; depois do merge, a tag `vx.y.z` no commit da `develop`. O fluxo `release/*` → `main` acima passa a valer na 1.0.0 (ver ADR-031).
 - Commits em Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `test:`).
 - Antes de abrir o PR: `npm run typecheck && npm test && npm run build`; depois revisão (code-review → simplify → security-review).
