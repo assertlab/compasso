@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import nextConfig from "../../next.config";
-import { securityHeaders } from "./security-headers";
+import { contentSecurityPolicy, securityHeaders } from "./security-headers";
 
 const header = (key: string) => securityHeaders.find((h) => h.key === key)?.value;
 
@@ -14,6 +14,32 @@ describe("security headers (COMP-003)", () => {
   it("forbids framing in both the modern and the legacy way", () => {
     expect(header("Content-Security-Policy")).toContain("frame-ancestors 'none'");
     expect(header("X-Frame-Options")).toBe("DENY");
+  });
+
+  describe("full policy in Report-Only (COMP-015)", () => {
+    const directive = (policy: string, name: string) => policy.split("; ").find((d) => d.startsWith(`${name} `)) ?? "";
+    const prod = contentSecurityPolicy(false);
+
+    it("is reported, not enforced, and the enforced policy stays the small subset", () => {
+      expect(header("Content-Security-Policy-Report-Only")).toContain("default-src 'self'");
+      expect(header("Content-Security-Policy")).not.toContain("default-src");
+    });
+
+    it("lets Turnstile load, render its iframe and call home, and nothing else third-party", () => {
+      expect(directive(prod, "script-src")).toContain("https://challenges.cloudflare.com");
+      expect(directive(prod, "frame-src")).toBe("frame-src https://challenges.cloudflare.com");
+      expect(directive(prod, "connect-src")).toBe("connect-src 'self' https://challenges.cloudflare.com");
+      expect(prod.match(/https?:\/\/[^\s;]+/g)?.every((o) => o === "https://challenges.cloudflare.com")).toBe(true);
+    });
+
+    it("allows eval only in development", () => {
+      expect(prod).not.toContain("unsafe-eval");
+      expect(contentSecurityPolicy(true)).toContain("'unsafe-eval'");
+    });
+
+    it("keeps framing, plugins and base/form hijacking closed", () => {
+      for (const d of ["frame-ancestors 'none'", "object-src 'none'", "base-uri 'self'", "form-action 'self'"]) expect(prod).toContain(d);
+    });
   });
 
   it("sets the rest of the baseline", () => {
