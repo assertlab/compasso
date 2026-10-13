@@ -6,26 +6,41 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useTurnstile } from "@/components/turnstile-widget";
 import { authClient } from "@/lib/auth-client";
+import { TURNSTILE_HEADER } from "@/lib/turnstile";
 
 type Providers = { google: boolean; github: boolean };
 
 // After signing in or out, navigate with a full page load instead of router.replace(): Next keeps the state of
 // pages the person left (a stale "Entrando…" form) and a client cache that may hold the previous account's pages.
-export function SignInForm({ next, providers, socialFailed }: { next: string; providers: Providers; socialFailed?: boolean }) {
+export function SignInForm({ next, providers, turnstileSiteKey, socialFailed }: { next: string; providers: Providers; turnstileSiteKey?: string; socialFailed?: boolean }) {
   const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(socialFailed ? "Não foi possível entrar com essa conta. Tente o código por e-mail." : null);
   const [pending, setPending] = useState(false);
+  const { containerRef, token: challengeToken, status: challengeStatus, reset: resetChallenge } = useTurnstile(turnstileSiteKey);
+  // With a site key the request needs a fresh token (single use); without one the challenge is off.
+  const needsToken = Boolean(turnstileSiteKey);
 
   async function sendCode(event: FormEvent) {
     event.preventDefault();
     setPending(true);
     setError(null);
-    const { error: err } = await authClient.emailOtp.sendVerificationOtp({ email: email.trim(), type: "sign-in" });
+    const { error: err } = await authClient.emailOtp.sendVerificationOtp(
+      { email: email.trim(), type: "sign-in" },
+      needsToken && challengeToken ? { headers: { [TURNSTILE_HEADER]: challengeToken } } : undefined,
+    );
     setPending(false);
-    if (err) return setError(err.status === 429 ? "Muitas tentativas. Aguarde um minuto e tente de novo." : "Não foi possível enviar o código. Confira o e-mail.");
+    if (err) {
+      resetChallenge(); // the token was spent, successful or not
+      if (err.status === 429) return setError("Muitas tentativas. Aguarde um minuto e tente de novo.");
+      if (err.status === 400 || err.status === 403 || err.status === 500) {
+        return setError(needsToken ? "Não foi possível confirmar que você é uma pessoa. Recarregue a página e tente de novo." : "Não foi possível enviar o código. Confira o e-mail.");
+      }
+      return setError("Não foi possível enviar o código. Confira o e-mail.");
+    }
     setStep("code");
   }
 
@@ -61,8 +76,9 @@ export function SignInForm({ next, providers, socialFailed }: { next: string; pr
               <Label htmlFor="email">E-mail</Label>
               <Input id="email" type="email" required autoFocus autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Enviando…" : "Receber código"}
+            {needsToken && <div ref={containerRef} />}
+            <Button type="submit" disabled={pending || (needsToken && !challengeToken && challengeStatus !== "error")}>
+              {pending ? "Enviando…" : needsToken && !challengeToken && challengeStatus !== "error" ? "Verificando…" : "Receber código"}
             </Button>
           </form>
         ) : (
@@ -90,9 +106,9 @@ export function SignInForm({ next, providers, socialFailed }: { next: string; pr
             </Button>
           </form>
         )}
-        {error && (
+        {(error || (step === "email" && needsToken && challengeStatus === "error")) && (
           <p role="alert" className="text-sm text-destructive">
-            {error}
+            {error ?? "A verificação de segurança não carregou. Recarregue a página ou desative bloqueadores de conteúdo para este site."}
           </p>
         )}
         {step === "email" && (providers.google || providers.github) && (
