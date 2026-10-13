@@ -34,5 +34,5 @@ async function SignInContent({ searchParams }: { searchParams: PageProps<"/sign-
     google: Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET),
     github: Boolean(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET),
   };
-  return <SignInForm next={next} providers={providers} socialFailed={error === "social"} />;
+  return <SignInForm next={next} providers={providers} turnstileSiteKey={env.TURNSTILE_SITE_KEY} socialFailed={error === "social"} />;
 }

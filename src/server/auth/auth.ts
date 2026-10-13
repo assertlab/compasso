@@ -3,7 +3,7 @@ import { createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { after } from "next/server";
-import { emailOTP, organization } from "better-auth/plugins";
+import { captcha, emailOTP, organization } from "better-auth/plugins";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { getDb, type Db } from "@/db";
 import * as authSchema from "@/db/auth-schema";
@@ -12,6 +12,7 @@ import { getAuthEnv } from "./env";
 import { INVITATION_LISTING_PATHS, mayListInvitations } from "./invitation-access";
 import { invitationText, INVITATION_SUBJECT } from "./invite-mail";
 import { consumeOtpQuota, hashEmail } from "./otp-limit";
+import { TURNSTILE_ACTION } from "@/lib/turnstile";
 import { sendMail, type Mailer } from "./mail";
 import { stripProviderTokens } from "./strip-tokens";
 
@@ -181,6 +182,20 @@ export function createAuth({
           },
         },
       }),
+      // A script that cannot solve the challenge never reaches the per-address quota, so it cannot burn a target's quota
+      // (COMP-014) nor mail arbitrary addresses from our domain. Enforced at the HTTP layer only. A failed or unreachable
+      // verification refuses the request (fail closed): code sign-in is unavailable while Cloudflare is, social sign-in is not.
+      ...(env.TURNSTILE_SECRET_KEY
+        ? [
+            captcha({
+              provider: "cloudflare-turnstile",
+              secretKey: env.TURNSTILE_SECRET_KEY,
+              endpoints: ["/email-otp/send-verification-otp"],
+              expectedAction: TURNSTILE_ACTION,
+              allowedHostnames: [new URL(baseURL).hostname],
+            }),
+          ]
+        : []),
       ...(nextJsCookies ? [nextCookies()] : []), // must be the last plugin
     ],
   });

@@ -12,6 +12,10 @@ const schema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
   GITHUB_CLIENT_ID: z.string().min(1).optional(),
   GITHUB_CLIENT_SECRET: z.string().min(1).optional(),
+  // Cloudflare Turnstile on the sign-in code request (COMP-014). Both or neither: with neither, the challenge is off
+  // (local development, Preview deployments, tests).
+  TURNSTILE_SITE_KEY: z.string().min(1).optional(),
+  TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
 });
 
 export type AuthEnv = z.infer<typeof schema> & { BETTER_AUTH_URL: string };
@@ -32,6 +36,9 @@ export function getAuthEnv(source: Record<string, string | undefined> = process.
   }
   if (env.NODE_ENV === "production" && (!env.BETTER_AUTH_SECRET || !env.BETTER_AUTH_URL)) {
     throw new Error("BETTER_AUTH_SECRET (>= 32 chars) and BETTER_AUTH_URL are required in production");
+  }
+  if (Boolean(env.TURNSTILE_SITE_KEY) !== Boolean(env.TURNSTILE_SECRET_KEY)) {
+    throw new Error("TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY must be set together");
   }
   return { ...env, BETTER_AUTH_URL: env.BETTER_AUTH_URL ?? "http://localhost:3000" };
 }

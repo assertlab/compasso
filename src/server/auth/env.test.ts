@@ -21,4 +21,10 @@ describe("getAuthEnv", () => {
   it("rejects a short secret", () => {
     expect(() => getAuthEnv({ BETTER_AUTH_SECRET: "short" })).toThrow();
   });
+  it("requires the two Turnstile keys together", () => {
+    expect(() => getAuthEnv({ BETTER_AUTH_SECRET: secret, TURNSTILE_SITE_KEY: "site" })).toThrow(/together/);
+    expect(() => getAuthEnv({ BETTER_AUTH_SECRET: secret, TURNSTILE_SECRET_KEY: "secret" })).toThrow(/together/);
+    expect(getAuthEnv({ BETTER_AUTH_SECRET: secret, TURNSTILE_SITE_KEY: "site", TURNSTILE_SECRET_KEY: "secret" }).TURNSTILE_SITE_KEY).toBe("site");
+    expect(getAuthEnv({ BETTER_AUTH_SECRET: secret }).TURNSTILE_SITE_KEY).toBeUndefined();
+  });
 });
