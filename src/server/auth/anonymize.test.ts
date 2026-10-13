@@ -66,7 +66,6 @@ describe("anonymizeAccount (ADR-034)", () => {
     expect(row.email).toBe(`deleted-${a.ctx.userId}@anonymized.invalid`);
     expect(row.name).toBeNull();
     expect(row.avatarUrl).toBeNull();
-    expect(row.clerkId).toBeNull();
     expect(displayName(row)).toBe("Usuário removido");
 
     const [m] = await db.select().from(workspaceMembers).where(and(eq(workspaceMembers.userId, a.ctx.userId), eq(workspaceMembers.workspaceId, a.ctx.workspaceId)));

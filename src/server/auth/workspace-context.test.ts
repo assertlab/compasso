@@ -84,13 +84,13 @@ describe("resolveWorkspaceContext", () => {
     expect((await resolveWorkspaceContext(asDb(), sessionOf(u.user, org.id))).kind).toBe("no-membership");
   });
 
-  it("links a pre-existing (migrated/Clerk) person by e-mail instead of duplicating", async () => {
-    await db.insert(users).values({ clerkId: "user_legacy", email: "Legacy@Example.com", name: "Legacy Name" });
+  it("links a pre-existing (migrated) person by e-mail instead of duplicating", async () => {
+    await db.insert(users).values({ email: "Legacy@Example.com", name: "Legacy Name" });
     const u = await signIn("legacy@example.com");
     const org = await auth.api.createOrganization({ headers: u.headers, body: { name: "Legacy Org", slug: "legacy-org" } });
     const res = await resolveWorkspaceContext(asDb(), sessionOf(u.user, org.id));
     expect(res.kind).toBe("ok");
-    const rows = await db.select().from(users).where(eq(users.clerkId, "user_legacy"));
+    const rows = await db.select().from(users).where(eq(users.email, "Legacy@Example.com"));
     expect(rows).toHaveLength(1);
     expect(rows[0].authId).toBe(u.user.id);
     expect(rows[0].name).toBe("Legacy Name");

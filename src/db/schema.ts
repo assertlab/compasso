@@ -44,9 +44,7 @@ const updatedAt = () =>
 
 export const users = pgTable("users", {
   id: id(),
-  /** Legacy Clerk user id, unused by the code since ADR-034; dropped in the contract migration (PR 5). */
-  clerkId: text("clerk_id").unique(),
-  /** Better Auth user id (`auth_user.id`). Filled by the data migration script and on first sign-in (linked by e-mail). */
+  /** Better Auth user id (`auth_user.id`). Null until the person first signs in (then linked by e-mail); kept as an opaque key after anonymization. */
   authId: text("auth_id").unique(),
   email: text("email").notNull().unique(),
   name: text("name"),
@@ -55,18 +53,17 @@ export const users = pgTable("users", {
   timezone: text("timezone").notNull().default("America/Recife"),
   /**
    * Logical deletion (LGPD): set by `anonymizeAccount` (ADR-034). The row is kept
-   * and anonymized (email replaced, name/avatar cleared, clerk_id nulled) so historical
+   * and anonymized (email replaced, name/avatar cleared) so historical
    * time entries stay intact and attributable to "a removed user".
    */
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
-}, (t) => [check("users_identity_chk", sql`${t.clerkId} is not null or ${t.authId} is not null`)]);
+});
 
 export const workspaces = pgTable("workspaces", {
   id: id(),
-  /** Tenant. Maps 1:1 to a Better Auth organization (`auth_org_id`). `clerk_org_id` is legacy, dropped in the contract migration (PR 5). */
-  clerkOrgId: text("clerk_org_id").unique(),
+  /** Tenant. Maps 1:1 to a Better Auth organization (`auth_org_id`). */
   authOrgId: text("auth_org_id").unique(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
@@ -79,7 +76,7 @@ export const workspaces = pgTable("workspaces", {
   archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
-}, (t) => [check("workspaces_identity_chk", sql`${t.clerkOrgId} is not null or ${t.authOrgId} is not null`)]);
+});
 
 export const workspaceMembers = pgTable(
   "workspace_members",
