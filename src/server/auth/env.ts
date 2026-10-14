@@ -16,9 +16,12 @@ const schema = z.object({
   // (local development, Preview deployments, tests). Vercel production requires both, see below.
   TURNSTILE_SITE_KEY: z.string().min(1).optional(),
   TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
+  // Who may create an account (ADR-038). "closed": only allow-listed or invited e-mails (and people who already have an account).
+  // Defaults to "open" for development, Preview and tests; Vercel production must say which one it wants.
+  ACCESS_MODE: z.enum(["open", "closed"]).optional(),
 });
 
-export type AuthEnv = z.infer<typeof schema> & { BETTER_AUTH_URL: string };
+export type AuthEnv = Omit<z.infer<typeof schema>, "ACCESS_MODE"> & { BETTER_AUTH_URL: string; ACCESS_MODE: "open" | "closed" };
 
 /**
  * Kept apart from `getEnv()` (database only) so tooling that just needs the DB does not require auth variables.
@@ -44,5 +47,9 @@ export function getAuthEnv(source: Record<string, string | undefined> = process.
   if (env.VERCEL_ENV === "production" && !env.TURNSTILE_SITE_KEY) {
     throw new Error("TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY are required in Vercel production");
   }
-  return { ...env, BETTER_AUTH_URL: env.BETTER_AUTH_URL ?? "http://localhost:3000" };
+  // Same lesson as the challenge above: an unset switch must not silently mean "open" in production.
+  if (env.VERCEL_ENV === "production" && !env.ACCESS_MODE) {
+    throw new Error('ACCESS_MODE ("open" or "closed") is required in Vercel production');
+  }
+  return { ...env, BETTER_AUTH_URL: env.BETTER_AUTH_URL ?? "http://localhost:3000", ACCESS_MODE: env.ACCESS_MODE ?? "open" };
 }

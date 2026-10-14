@@ -294,3 +294,20 @@ export const timeEntryTags = pgTable(
     index("time_entry_tags_tag_idx").on(t.tagId),
   ],
 );
+
+// ------------------------------------------------------------------ access
+
+/**
+ * Closed beta (ADR-038): with `ACCESS_MODE=closed` only these e-mails (plus people who already have an account and
+ * people with a pending invitation) may create an account. Addresses are stored lower-case.
+ */
+export const allowedEmails = pgTable(
+  "allowed_emails",
+  {
+    id: id(),
+    email: text("email").notNull().unique(),
+    note: text("note"),
+    createdAt: createdAt(),
+  },
+  (t) => [check("allowed_emails_email_lower", sql`${t.email} = lower(${t.email})`)],
+);
