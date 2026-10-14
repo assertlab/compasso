@@ -72,6 +72,9 @@ export async function buildPersonalExport(db: Db, userId: string, opts: { now?: 
   const roleIn = new Map(memberships.map((m) => [m.workspaceId, m.role]));
   const tagKeysOf = new Map<string, string[]>();
   for (const l of links) tagKeysOf.set(l.entryId, [...(tagKeysOf.get(l.entryId) ?? []), l.tagId]);
+  // The link table has no order of its own: follow the catalog order (name, id) so the same data always gives the same file.
+  const tagRank = new Map(tagRows.map((t, i) => [t.id, i]));
+  for (const list of tagKeysOf.values()) list.sort((a, b) => tagRank.get(a)! - tagRank.get(b)!);
   const iso = (d: Date | null) => (d ? d.toISOString() : null);
 
   const data: PersonalExport = {

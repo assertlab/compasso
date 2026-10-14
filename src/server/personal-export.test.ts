@@ -159,3 +159,24 @@ describe("buildPersonalExport (ADR-037)", () => {
     expect(await db.select().from(timeEntries).where(eq(timeEntries.userId, ana.userId))).toEqual(before);
   });
 });
+
+describe("buildPersonalExport tag order (ADR-037)", () => {
+  it("lists an entry's tags in catalog order whatever order they were linked in", async () => {
+    const db = await createTestDb();
+    const a = await seedWorkspace(db, "tagorder");
+    const [zeta] = await db.insert(tags).values({ workspaceId: a.workspaceId, name: "Zeta" }).returning();
+    const [alfa] = await db.insert(tags).values({ workspaceId: a.workspaceId, name: "Alfa" }).returning();
+    const [meio] = await db.insert(tags).values({ workspaceId: a.workspaceId, name: "Meio" }).returning();
+    const [entry] = await db
+      .insert(timeEntries)
+      .values({ workspaceId: a.workspaceId, userId: a.userId, description: "x", startedAt: new Date("2026-10-01T12:00:00Z"), endedAt: new Date("2026-10-01T13:00:00Z"), timezone: "America/Recife" })
+      .returning();
+    // linked in the "wrong" order on purpose
+    for (const t of [zeta, alfa, meio]) await db.insert(timeEntryTags).values({ timeEntryId: entry.id, tagId: t.id });
+
+    const w = (await buildPersonalExport(db as unknown as Db, a.userId, { now: new Date("2026-10-14T15:00:00Z"), version: "9.9.9" })).workspaces[0];
+    const nameOf = new Map(w.tags.map((t) => [t.key, t.name]));
+    expect(w.tags.map((t) => t.name)).toEqual(["Alfa", "Meio", "Zeta"]);
+    expect(w.entries[0].tagKeys.map((k) => nameOf.get(k))).toEqual(["Alfa", "Meio", "Zeta"]);
+  });
+});
