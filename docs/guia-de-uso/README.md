@@ -2,7 +2,7 @@
 
 O Compasso registra o tempo de trabalho por cliente, projeto e tarefa e transforma esses registros em relatórios que você baixa em XLSX, CSV ou PDF, sem plano pago. Este guia cobre o uso do dia a dia, da primeira entrada ao relatório do mês.
 
-> As telas usam dados de demonstração (clientes marcados com "(demo)") e correspondem à versão 0.1.0. Os e-mails das capturas foram desfocados.
+> As telas usam dados de demonstração (clientes marcados com "(demo)") e correspondem à versão 0.1.0, exceto o menu da conta e a página "Minha conta", capturados na 0.2.1. Os e-mails das capturas foram desfocados.
 
 **Neste guia**
 
@@ -146,13 +146,15 @@ Só administradores veem esta aba.
 
 O nome do workspace e as suas iniciais no canto superior direito abrem o menu da conta.
 
-![Menu da conta com nome, e-mail, lista de workspaces, "Criar ou ver convites" e botão Sair](./img/03-menu-da-conta.png)
+![Menu da conta com nome, e-mail, lista de workspaces, "Criar ou ver convites", "Minha conta e meus dados" e botão Sair](./img/03-menu-da-conta.png)
 
 Nele você **troca de workspace**, **cria um workspace** novo, **vê os convites** que recebeu, abre **Minha conta e meus dados** e **sai** da conta. O ícone ao lado (monitor, sol ou lua) alterna o tema entre sistema, claro e escuro.
 
 ### Exportar meus dados
 
 Em **Minha conta e meus dados** (`/conta`), o botão **Baixar meus dados (JSON)** baixa uma cópia do que é seu: os registros de horas de todos os workspaces em que você trabalhou (inclusive os removidos, o cronômetro em andamento e os workspaces que você já deixou), com início e término em UTC e o fuso de cada registro, os nomes de clientes, projetos, tarefas e tags que eles usam, e os dados da sua conta. O arquivo não traz dados de outras pessoas nem identificadores internos do banco. Para relatórios por período em planilha ou PDF, use [Relatórios](#6-relatórios-e-exportação).
+
+![Página Minha conta com o cartão "Exportar meus dados" e o botão Baixar meus dados (JSON)](./img/15-minha-conta.png)
 
 O Compasso é um aplicativo web instalável (PWA): pelo menu do navegador é possível instalá-lo na tela inicial do celular ou do computador.
 
