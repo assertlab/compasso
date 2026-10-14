@@ -4,6 +4,8 @@ Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 
 ## [Não lançado]
 
+### Segurança
+- Revisão de fechamento da 0.3.0. Na exclusão de conta, os dados de acesso (sessões, vínculos do login) agora são apagados antes das marcas nos workspaces: antes, uma requisição da mesma pessoa durante a exclusão podia reativar um vínculo recém-removido. A limpeza de códigos de e-mail deixou de tratar `%`, `_` e `\` do endereço como curingas e passou a apagar também os contadores de limite de taxa ligados ao e-mail (um hash sem sal, que daria para adivinhar). Se dois pedidos de código chegarem juntos, vale o mais recente. A mensagem de falha da exclusão passou a dizer o que fazer.
 ## [0.3.0] - 2026-10-14
 
 A pessoa passa a controlar os próprios dados: baixar uma cópia e excluir a conta, na nova página Minha conta.

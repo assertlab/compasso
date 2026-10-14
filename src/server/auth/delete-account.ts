@@ -1,5 +1,5 @@
 import { createHash, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import type { Db } from "@/db";
 import * as authSchema from "@/db/auth-schema";
 import { users } from "@/db/schema";
@@ -84,15 +84,16 @@ export async function confirmDeletion(db: Db, userId: string, input: { code: str
   if (input.confirmation.trim() !== DELETE_CONFIRMATION_WORD) return { ok: false, reason: "wrong-confirmation" };
 
   const identifier = identifierFor(email);
-  const [row] = await db.select().from(authSchema.verification).where(eq(authSchema.verification.identifier, identifier));
+  // The identifier is not unique: two parallel requests can leave two rows. The newest one is the code that was mailed last.
+  const [row] = await db.select().from(authSchema.verification).where(eq(authSchema.verification.identifier, identifier)).orderBy(desc(authSchema.verification.createdAt)).limit(1);
   if (!row) return { ok: false, reason: "no-code" };
   if (row.expiresAt.getTime() <= now) {
-    await db.delete(authSchema.verification).where(eq(authSchema.verification.id, row.id));
+    await db.delete(authSchema.verification).where(eq(authSchema.verification.identifier, identifier));
     return { ok: false, reason: "expired" };
   }
   const stored = JSON.parse(row.value) as { hash: string; attempts: number };
   if (stored.attempts >= DELETE_CODE_MAX_ATTEMPTS) {
-    await db.delete(authSchema.verification).where(eq(authSchema.verification.id, row.id));
+    await db.delete(authSchema.verification).where(eq(authSchema.verification.identifier, identifier));
     return { ok: false, reason: "too-many-attempts" };
   }
   // Count the attempt first, in one statement keyed on the attempts we read: two parallel guesses cannot both be "the first".
@@ -104,7 +105,7 @@ export async function confirmDeletion(db: Db, userId: string, input: { code: str
   if (counted.length === 0) return { ok: false, reason: "wrong-code" };
   if (!sameHash(hashCode(identifier, input.code.trim()), stored.hash)) return { ok: false, reason: "wrong-code" };
 
-  await db.delete(authSchema.verification).where(eq(authSchema.verification.id, row.id));
+  await db.delete(authSchema.verification).where(eq(authSchema.verification.identifier, identifier));
   try {
     const result = await anonymizeAccount(db, userId);
     return { ok: true, archived: result.status === "anonymized" ? result.archived : [] };

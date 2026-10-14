@@ -1,7 +1,8 @@
-import { and, eq, isNull, ne, or, sql } from "drizzle-orm";
+import { and, eq, isNull, like, ne, or, sql } from "drizzle-orm";
 import type { Db } from "@/db";
 import * as authSchema from "@/db/auth-schema";
 import { users, workspaceMembers, workspaces } from "@/db/schema";
+import { hashEmail } from "./otp-limit";
 
 /**
  * LGPD erasure of one person (ADR-034). Domain rows are never deleted (ADR-025): memberships are marked removed, the
@@ -67,23 +68,28 @@ export async function anonymizeAccount(db: Db, userId: string) {
   for (const w of plan.archive) {
     await db.update(workspaces).set({ archivedAt: now, updatedAt: now }).where(and(eq(workspaces.id, w.id), isNull(workspaces.archivedAt)));
   }
-  // 2. Access first: from here on the person is locked out even if a later step fails.
+  // 2. Identity data first: with `auth_user` gone (sessions, accounts and organization memberships hang off it by cascade) no request
+  //    can resolve this person any more, so nothing can write their domain rows back to "active" while the run is still going.
+  //    Pending invitations *to* their e-mail and unused OTPs are keyed by e-mail instead.
+  const email = user.email.toLowerCase();
+  await db.delete(authSchema.invitation).where(sql`lower(${authSchema.invitation.email}) = ${email}`);
+  // OTP identifiers look like "<type>-otp-<email>"; `%`, `_` and `\` are LIKE wildcards in an address, so they are escaped.
+  const escaped = email.replace(/[\\%_]/g, "\\$&");
+  await db
+    .delete(authSchema.verification)
+    .where(or(sql`lower(${authSchema.verification.identifier}) = ${email}`, sql`lower(${authSchema.verification.identifier}) like ${"%-otp-" + escaped} escape '\\'`));
+  await db
+    .delete(authSchema.user)
+    .where(user.authId ? or(eq(authSchema.user.id, user.authId), sql`lower(${authSchema.user.email}) = ${email}`) : sql`lower(${authSchema.user.email}) = ${email}`);
+  // Counters are keyed by a hash of the address (otp-email, delete-code): an unsalted hash of an e-mail is guessable, so they go too.
+  await db.delete(authSchema.rateLimit).where(like(authSchema.rateLimit.key, `%:${hashEmail(email)}`));
+  // 3. Access in the domain tables.
   await db
     .update(workspaceMembers)
     .set({ removedAt: now, updatedAt: now })
     .where(and(eq(workspaceMembers.userId, userId), isNull(workspaceMembers.removedAt)));
-  // 3. Identity data. Everything in auth_* hangs off auth_user by cascade (sessions, accounts, members, invitations
-  //    they sent); pending invitations *to* their e-mail and unused OTPs are keyed by e-mail instead.
-  const email = user.email.toLowerCase();
-  await db.delete(authSchema.invitation).where(sql`lower(${authSchema.invitation.email}) = ${email}`);
-  // OTP identifiers look like "sign-in-otp-<email>" ("_" in the e-mail is a LIKE wildcard: it can only over-match expired codes).
-  await db
-    .delete(authSchema.verification)
-    .where(or(sql`lower(${authSchema.verification.identifier}) = ${email}`, sql`lower(${authSchema.verification.identifier}) like ${"%-otp-" + email}`));
-  await db
-    .delete(authSchema.user)
-    .where(user.authId ? or(eq(authSchema.user.id, user.authId), sql`lower(${authSchema.user.email}) = ${email}`) : sql`lower(${authSchema.user.email}) = ${email}`);
-  // 4. Last: the domain row. Until this lands the person is not marked deleted, so a rerun redoes steps 1-3 harmlessly.
+  // 4. Last: the domain row. Until this lands the person is not marked deleted, so a rerun redoes steps 1-3 harmlessly
+  //    (a run that died after step 2 is finished by running `scripts/anonymize-user.ts` again: the person can no longer sign in).
   //    `auth_id` stays as an opaque dangling key; the e-mail is gone, so a new sign-up with it is a new person.
   await db
     .update(users)
