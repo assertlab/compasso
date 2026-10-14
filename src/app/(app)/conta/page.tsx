@@ -3,7 +3,9 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getDeletionPreview } from "@/server/account-deletion";
 import { requireWorkspaceContext } from "@/server/workspace-context";
+import { DeleteAccountCard } from "./delete-account-card";
 
 export const metadata: Metadata = { title: "Minha conta" };
 
@@ -16,7 +18,10 @@ export default function ContaPage() {
 }
 
 async function Conta() {
-  await requireWorkspaceContext();
+  const { userId } = await requireWorkspaceContext();
+  const plan = await getDeletionPreview(userId);
+  const blockedBy = plan.status === "blocked" ? plan.blockedBy.map((w) => w.name) : [];
+  const archive = plan.status === "ready" || plan.status === "blocked" ? plan.archive.map((w) => w.name) : [];
   return (
     <section className="flex flex-col gap-4">
       <div>
@@ -47,6 +52,8 @@ async function Conta() {
           </div>
         </CardContent>
       </Card>
+
+      <DeleteAccountCard blockedBy={blockedBy} archive={archive} />
     </section>
   );
 }

@@ -156,6 +156,12 @@ Em **Minha conta e meus dados** (`/conta`), o botão **Baixar meus dados (JSON)*
 
 ![Página Minha conta com o cartão "Exportar meus dados" e o botão Baixar meus dados (JSON)](./img/15-minha-conta.png)
 
+### Excluir minha conta
+
+Na mesma página, o cartão **Excluir minha conta** apaga a sua conta na hora, sem prazo de carência e sem volta. Seu nome, e-mail e acessos são removidos e você sai de todos os workspaces. As horas que você registrou continuam nos workspaces, atribuídas a **Usuário removido**, para que os relatórios já fechados não mudem. Workspaces em que você era a única pessoa são arquivados.
+
+Para confirmar, clique em **Enviar código por e-mail**, digite o código de 6 dígitos (vale 10 minutos) e a palavra **EXCLUIR**. Se você é a única pessoa administradora de um workspace que tem outros membros, o botão não aparece: a tela lista esses workspaces, e é preciso promover outra pessoa a administradora antes. Baixe uma cópia dos seus dados (cartão acima) antes de excluir, se quiser guardá-los.
+
 O Compasso é um aplicativo web instalável (PWA): pelo menu do navegador é possível instalá-lo na tela inicial do celular ou do computador.
 
 ---

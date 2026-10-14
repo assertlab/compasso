@@ -14,7 +14,7 @@ type Providers = { google: boolean; github: boolean };
 
 // After signing in or out, navigate with a full page load instead of router.replace(): Next keeps the state of
 // pages the person left (a stale "Entrando…" form) and a client cache that may hold the previous account's pages.
-export function SignInForm({ next, providers, turnstileSiteKey, socialFailed }: { next: string; providers: Providers; turnstileSiteKey?: string; socialFailed?: boolean }) {
+export function SignInForm({ next, providers, turnstileSiteKey, socialFailed, accountDeleted }: { next: string; providers: Providers; turnstileSiteKey?: string; socialFailed?: boolean; accountDeleted?: boolean }) {
   const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -72,6 +72,11 @@ export function SignInForm({ next, providers, turnstileSiteKey, socialFailed }: 
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
+        {accountDeleted && step === "email" && (
+          <p role="status" className="rounded-md border p-3 text-sm">
+            Sua conta foi excluída. Os dados de acesso foram apagados e você saiu de todos os workspaces.
+          </p>
+        )}
         {step === "email" ? (
           <form onSubmit={sendCode} className="grid gap-3">
             <div className="grid gap-1.5">
