@@ -2,7 +2,7 @@
 
 O Compasso registra o tempo de trabalho por cliente, projeto e tarefa e transforma esses registros em relatórios que você baixa em XLSX, CSV ou PDF, sem plano pago. Este guia cobre o uso do dia a dia, da primeira entrada ao relatório do mês.
 
-> As telas usam dados de demonstração (clientes marcados com "(demo)") e correspondem à versão 0.1.0, exceto o menu da conta e a página "Minha conta" (incluindo a exclusão de conta), capturados na 0.2.1, e a página de acesso restrito, capturada na 0.3.1. Os e-mails das capturas foram desfocados.
+> As telas usam dados de demonstração (clientes marcados com "(demo)") e correspondem à versão 0.1.0, exceto o menu da conta e a página "Minha conta" (incluindo a exclusão de conta), capturados na 0.2.1, e as telas de entrada, de código, de conta excluída e de acesso restrito, capturadas na 0.4.0. Os e-mails das capturas foram desfocados.
 
 **Neste guia**
 
@@ -25,7 +25,7 @@ Não existe senha. Você digita o e-mail, recebe um código de 6 dígitos e o in
 
 Abaixo do formulário de entrada há o aviso de que, ao continuar, você concorda com os **Termos de Uso** e a **Política de Privacidade** (a versão de cada texto aparece no aviso), e que é preciso ter 18 anos ou mais. Os dois textos ficam abertos a quem ainda não entrou e também têm links no rodapé de todas as telas.
 
-![Tela de entrada com campo de e-mail, botão "Receber código" e botões Google e GitHub](./img/01-entrar.png)
+![Tela de entrada com campo de e-mail, botão "Receber código", botões Google e GitHub e o aviso de que, ao continuar, você concorda com os Termos de Uso e a Política de Privacidade](./img/01-entrar.png)
 
 Depois de pedir o código, a tela passa a pedir o código recebido. O código vale por 5 minutos. Se o e-mail estiver errado, "Usar outro e-mail" volta ao passo anterior.
 
@@ -173,6 +173,14 @@ Para confirmar, clique em **Enviar código por e-mail**, digite o código de 6 d
 Ao concluir, você volta à tela de entrada com o aviso de que a conta foi excluída.
 
 ![Tela de entrada com o aviso "Sua conta foi excluída. Os dados de acesso foram apagados e você saiu de todos os workspaces."](./img/18-conta-excluida.png)
+
+### Termos, privacidade e contato
+
+Os **Termos de Uso** e a **Política de Privacidade** ficam em `/termos` e `/privacidade`, com links no rodapé de todas as telas e no aviso da tela de entrada. Abrem sem login e mostram a data da versão. Ao continuar na entrada, você concorda com os dois; o Compasso não grava um aceite separado.
+
+Em resumo: o Compasso guarda o que você precisa para registrar horas (e-mail, nome, seus cadastros e registros) e o mínimo para manter o acesso seguro (a sessão, com o endereço IP e o navegador usados no login, e os códigos de verificação, guardados só como hash). Não há anúncios nem ferramentas de rastreamento. Os dados ficam em fornecedores sediados nos Estados Unidos (o banco de dados na AWS, em Ohio, a hospedagem, o envio de e-mail e a verificação anti-robô), e a política lista todos. Administradores de um workspace podem ver e exportar os registros de horas dos membros dali; os seus dados em outros workspaces não aparecem para eles.
+
+Para exercer os seus direitos, baixe ou exclua os seus dados em **Minha conta**, como descrito acima. Qualquer outro pedido (corrigir algo, pedir a eliminação do conteúdo de um workspace arquivado, tirar dúvidas) vai para `contato@assertlab.com`, o mesmo endereço para pedir acesso ao beta. Os textos foram escritos para o beta fechado e ainda não passaram por revisão jurídica.
 
 O Compasso é um aplicativo web instalável (PWA): pelo menu do navegador é possível instalá-lo na tela inicial do celular ou do computador.
 
