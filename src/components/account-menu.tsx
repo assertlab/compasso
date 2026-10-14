@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, LogOut, Plus } from "lucide-react";
+import { Building2, CircleUserRound, LogOut, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -61,6 +61,12 @@ export function AccountMenu() {
             <Link href="/onboarding">
               <Plus aria-hidden />
               Criar ou ver convites
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" className="justify-start" onClick={() => setOpen(false)}>
+            <Link href="/conta">
+              <CircleUserRound aria-hidden />
+              Minha conta e meus dados
             </Link>
           </Button>
         </div>

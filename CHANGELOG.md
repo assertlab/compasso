@@ -2,6 +2,11 @@
 
 Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões seguem o [SemVer](https://semver.org/lang/pt-BR/). Enquanto a versão principal for 0, mudanças de funcionalidade sobem o número do meio. A versão 1.0.0 marca a abertura do produto ao público.
 
+## [Não lançado]
+
+### Conta e dados
+- Nova página **Minha conta** (`/conta`), acessível pelo menu da conta, com **Exportar meus dados**: baixa em JSON os registros de horas da própria pessoa em todos os workspaces (inclusive os removidos e o cronômetro em andamento), os nomes de clientes, projetos, tarefas e tags que eles usam e os dados da conta, sem dados de outras pessoas. Usa o mesmo limite de exportações dos relatórios.
+
 ## [0.2.1] - 2026-10-14
 
 Correções de segurança: o desafio anti-bot do login por código, que estava desligado em produção, passa a valer e a política de conteúdo (CSP) passa a ser aplicada.
