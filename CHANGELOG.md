@@ -6,6 +6,7 @@ Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 
 ### Conta e dados
 - Nova página **Minha conta** (`/conta`), acessível pelo menu da conta, com **Exportar meus dados**: baixa em JSON os registros de horas da própria pessoa em todos os workspaces (inclusive os removidos e o cronômetro em andamento), os nomes de clientes, projetos, tarefas e tags que eles usam e os dados da conta, sem dados de outras pessoas. Usa o mesmo limite de exportações dos relatórios.
+- **Excluir minha conta**, na mesma página, em uma "zona de perigo": a exclusão é imediata e irreversível e exige duas provas, um código de 6 dígitos enviado ao e-mail da conta (vale 10 minutos, 3 tentativas, no máximo 3 pedidos por hora) e a palavra EXCLUIR digitada. Nome, e-mail e acessos são apagados; as horas registradas ficam nos workspaces como "Usuário removido" e workspaces em que a pessoa era a única são arquivados. Quem é a única pessoa administradora de um workspace com outros membros não consegue excluir: a tela lista esses workspaces. Depois da exclusão, o login mostra um aviso de conta excluída.
 
 ## [0.2.1] - 2026-10-14
 
