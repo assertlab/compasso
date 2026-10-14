@@ -2,11 +2,14 @@
 
 Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões seguem o [SemVer](https://semver.org/lang/pt-BR/). Enquanto a versão principal for 0, mudanças de funcionalidade sobem o número do meio. A versão 1.0.0 marca a abertura do produto ao público.
 
-## [Não lançado]
+## [0.2.1] - 2026-10-14
+
+Correções de segurança: o desafio anti-bot do login por código, que estava desligado em produção, passa a valer e a política de conteúdo (CSP) passa a ser aplicada.
 
 ### Segurança
-- A política de segurança de conteúdo (CSP) completa passa a ser aplicada, não só reportada: só carrega scripts, quadros e conexões do próprio site e do desafio do Turnstile. Validada em modo Report-Only sem violações no login por código com o Turnstile ativo; o login com GitHub e o PWA offline não foram verificados antes de aplicar (reverter é trocar o valor do header). Limite conhecido: `script-src` mantém `'unsafe-inline'`, então não barra um script inline injetado.
-- O deploy de produção na Vercel agora falha no build se `TURNSTILE_SITE_KEY` e `TURNSTILE_SECRET_KEY` não estiverem definidas (o desafio do login por código estava desligado em produção por falta das variáveis). Preview e desenvolvimento seguem com o desafio opcional.
+- O desafio do Cloudflare Turnstile no envio do código de login estava desligado em produção, porque as variáveis `TURNSTILE_SITE_KEY` e `TURNSTILE_SECRET_KEY` nunca tinham sido criadas. Foi ativado e verificado em produção: sem o token do desafio, o envio do código é recusado.
+- O deploy de produção na Vercel agora falha no build se essas duas variáveis não estiverem definidas, para a falta não passar despercebida de novo. Preview e desenvolvimento seguem com o desafio opcional.
+- A política de segurança de conteúdo (CSP) completa passa a ser aplicada, não só reportada: só carrega scripts, quadros e conexões do próprio site e do desafio do Turnstile. Verificada em produção no login por código, no login com GitHub, nas telas do app e no PWA offline. Limite conhecido: `script-src` mantém `'unsafe-inline'`, então não barra um script inline injetado.
 
 ## [0.2.0] - 2026-10-13
 
@@ -53,4 +56,5 @@ Primeira versão etiquetada. Reúne tudo o que foi construído desde a estrutura
 
 Estrutura inicial: Next.js, esquema Drizzle, base da PWA, design system e integração contínua.
 
+[0.2.1]: https://github.com/assertlab/compasso/releases/tag/v0.2.1
 [0.2.0]: https://github.com/assertlab/compasso/releases/tag/v0.2.0
