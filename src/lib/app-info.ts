@@ -1,4 +1,4 @@
-/** "v0.3.0" in production; Previews and local runs add the commit ("v0.3.0 · 8c1652e" / "v0.3.0 · dev") to tell deploys apart. */
+/** "v0.3.1" in production; Previews and local runs add the commit ("v0.3.1 · 8c1652e" / "v0.3.1 · dev") to tell deploys apart. */
 export function formatVersion({ version, vercelEnv, sha }: { version: string; vercelEnv?: string; sha?: string }): string {
   const label = `v${version}`;
   if (vercelEnv === "production") return label;
