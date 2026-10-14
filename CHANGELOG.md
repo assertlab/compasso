@@ -4,6 +4,9 @@ Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 
 ## [Não lançado]
 
+### Documentação
+- Guia de uso: nova subseção **Termos, privacidade e contato** (seção 8) e capturas da entrada, do código, da conta excluída e do acesso restrito refeitas na 0.4.0 (com o aviso de aceite e os links do rodapé; o e-mail da tela de código segue desfocado).
+
 ## [0.4.0] - 2026-10-14
 
 Beta fechado: o acesso a contas novas passa a depender de uma lista de e-mails liberados, e o serviço ganha Termos de Uso e Política de Privacidade.
