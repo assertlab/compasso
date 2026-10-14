@@ -5,6 +5,7 @@ Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 ## [Não lançado]
 
 ### Segurança
+- A política de segurança de conteúdo (CSP) completa passa a ser aplicada, não só reportada: só carrega scripts, quadros e conexões do próprio site e do desafio do Turnstile. Validada em modo Report-Only sem violações no login por código com o Turnstile ativo; o login com GitHub e o PWA offline não foram verificados antes de aplicar (reverter é trocar o valor do header). Limite conhecido: `script-src` mantém `'unsafe-inline'`, então não barra um script inline injetado.
 - O deploy de produção na Vercel agora falha no build se `TURNSTILE_SITE_KEY` e `TURNSTILE_SECRET_KEY` não estiverem definidas (o desafio do login por código estava desligado em produção por falta das variáveis). Preview e desenvolvimento seguem com o desafio opcional.
 
 ## [0.2.0] - 2026-10-13
