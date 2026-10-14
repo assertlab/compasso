@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { type FormEvent, useState } from "react";
 import { GitHubIcon, GoogleIcon } from "@/components/brand-icons";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTurnstile } from "@/components/turnstile-widget";
 import { authClient } from "@/lib/auth-client";
+import { LEGAL_PATHS, MIN_AGE, formatLegalVersion } from "@/lib/legal";
 import { TURNSTILE_HEADER } from "@/lib/turnstile";
 
 type Providers = { google: boolean; github: boolean };
@@ -143,6 +145,17 @@ export function SignInForm({ next, providers, turnstileSiteKey, socialFailed, ac
           </div>
         )}
         <p className="text-xs text-muted-foreground">Primeiro acesso? Use o mesmo e-mail: a conta é criada automaticamente.</p>
+        <p className="text-xs text-muted-foreground">
+          Ao continuar, você concorda com os{" "}
+          <Link href={LEGAL_PATHS.terms} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">
+            Termos de Uso
+          </Link>{" "}
+          e a{" "}
+          <Link href={LEGAL_PATHS.privacy} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">
+            Política de Privacidade
+          </Link>{" "}
+          (versão de {formatLegalVersion()}). Você precisa ter {MIN_AGE} anos ou mais.
+        </p>
       </CardContent>
     </Card>
   );

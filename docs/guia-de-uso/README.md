@@ -2,7 +2,7 @@
 
 O Compasso registra o tempo de trabalho por cliente, projeto e tarefa e transforma esses registros em relatórios que você baixa em XLSX, CSV ou PDF, sem plano pago. Este guia cobre o uso do dia a dia, da primeira entrada ao relatório do mês.
 
-> As telas usam dados de demonstração (clientes marcados com "(demo)") e correspondem à versão 0.1.0, exceto o menu da conta e a página "Minha conta" (incluindo a exclusão de conta), capturados na 0.2.1. Os e-mails das capturas foram desfocados.
+> As telas usam dados de demonstração (clientes marcados com "(demo)") e correspondem à versão 0.1.0, exceto o menu da conta e a página "Minha conta" (incluindo a exclusão de conta), capturados na 0.2.1, e a página de acesso restrito, capturada na 0.3.1. Os e-mails das capturas foram desfocados.
 
 **Neste guia**
 
@@ -20,6 +20,10 @@ O Compasso registra o tempo de trabalho por cliente, projeto e tarefa e transfor
 ## 1. Entrar
 
 Não existe senha. Você digita o e-mail, recebe um código de 6 dígitos e o informa na tela seguinte. Também é possível entrar com Google ou GitHub. No primeiro acesso a conta é criada automaticamente: use sempre o mesmo e-mail. Enquanto o Compasso estiver em beta fechado, só podem criar conta as pessoas que o ASSERT Lab liberou ou que receberam um convite para um workspace; quem tentar sem acesso vê uma página explicando como pedir.
+
+![Página "Acesso restrito": explica que o Compasso está em beta fechado, como pedir acesso por e-mail e que nenhuma conta foi criada, com o botão Voltar à entrada](./img/19-acesso-restrito.png)
+
+Abaixo do formulário de entrada há o aviso de que, ao continuar, você concorda com os **Termos de Uso** e a **Política de Privacidade** (a versão de cada texto aparece no aviso), e que é preciso ter 18 anos ou mais. Os dois textos ficam abertos a quem ainda não entrou e também têm links no rodapé de todas as telas.
 
 ![Tela de entrada com campo de e-mail, botão "Receber código" e botões Google e GitHub](./img/01-entrar.png)
 

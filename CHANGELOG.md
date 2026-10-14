@@ -4,6 +4,10 @@ Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 
 ## [Não lançado]
 
+### Legal
+- Novas páginas públicas **Termos de Uso** (`/termos`) e **Política de Privacidade** (`/privacidade`), em linguagem simples, abertas a quem ainda não entrou. A política diz quais dados são guardados, para quê, quais fornecedores os tratam (Neon, Vercel, Resend, Cloudflare e, se a pessoa escolher, Google ou GitHub), que há transferência para fora do Brasil, o que acontece com os dados ao excluir a conta e como exercer os direitos da LGPD. Responsável: ASSERT Lab; contato: `contato@assertlab.com`. Os textos ainda não passaram por revisão jurídica (isso fica para antes de qualquer abertura pública).
+- A tela de entrada mostra o aviso de que, ao continuar, a pessoa concorda com os dois textos (com a data da versão) e que é preciso ter 18 anos ou mais; o rodapé de todas as telas ganhou os links. O aceite não é gravado no banco (ADR-039).
+
 ### Acesso
 - **Beta fechado** (`ACCESS_MODE=closed`): só cria conta quem está na lista de e-mails liberados, tem um convite pendente para um workspace ou já tem conta. Quem tenta sem acesso não recebe código e cai na página **Acesso restrito**, que explica como pedir. A lista é gerida pelo script `scripts/access.ts` (listar, adicionar, remover); o login por Google e GitHub passa pela mesma regra na criação da conta. Em produção da Vercel a variável é obrigatória (o build falha sem ela). Nova tabela `allowed_emails` (migração 0007).
 
