@@ -4,6 +4,10 @@ Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 
 ## [Não lançado]
 
+## [0.3.0] - 2026-10-14
+
+A pessoa passa a controlar os próprios dados: baixar uma cópia e excluir a conta, na nova página Minha conta.
+
 ### Conta e dados
 - Nova página **Minha conta** (`/conta`), acessível pelo menu da conta, com **Exportar meus dados**: baixa em JSON os registros de horas da própria pessoa em todos os workspaces (inclusive os removidos e o cronômetro em andamento), os nomes de clientes, projetos, tarefas e tags que eles usam e os dados da conta, sem dados de outras pessoas. Usa o mesmo limite de exportações dos relatórios.
   As tags de cada registro saem sempre na mesma ordem (a do catálogo), para dois downloads dos mesmos dados darem o mesmo arquivo.
@@ -63,5 +67,6 @@ Primeira versão etiquetada. Reúne tudo o que foi construído desde a estrutura
 
 Estrutura inicial: Next.js, esquema Drizzle, base da PWA, design system e integração contínua.
 
+[0.3.0]: https://github.com/assertlab/compasso/releases/tag/v0.3.0
 [0.2.1]: https://github.com/assertlab/compasso/releases/tag/v0.2.1
 [0.2.0]: https://github.com/assertlab/compasso/releases/tag/v0.2.0
