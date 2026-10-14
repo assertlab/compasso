@@ -27,4 +27,12 @@ describe("getAuthEnv", () => {
     expect(getAuthEnv({ BETTER_AUTH_SECRET: secret, TURNSTILE_SITE_KEY: "site", TURNSTILE_SECRET_KEY: "secret" }).TURNSTILE_SITE_KEY).toBe("site");
     expect(getAuthEnv({ BETTER_AUTH_SECRET: secret }).TURNSTILE_SITE_KEY).toBeUndefined();
   });
+  it("requires Turnstile on Vercel production only", () => {
+    const base = { NODE_ENV: "production", BETTER_AUTH_SECRET: secret, BETTER_AUTH_URL: "https://app.example.com" };
+    expect(() => getAuthEnv({ ...base, VERCEL_ENV: "production" })).toThrow(/required in Vercel production/);
+    expect(getAuthEnv({ ...base, VERCEL_ENV: "production", TURNSTILE_SITE_KEY: "site", TURNSTILE_SECRET_KEY: "secret" }).TURNSTILE_SITE_KEY).toBe("site");
+    // Preview deployments and plain production builds (CI) keep the challenge optional.
+    expect(getAuthEnv({ ...base, VERCEL_ENV: "preview" }).TURNSTILE_SITE_KEY).toBeUndefined();
+    expect(getAuthEnv(base).TURNSTILE_SITE_KEY).toBeUndefined();
+  });
 });

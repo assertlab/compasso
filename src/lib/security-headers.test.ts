@@ -16,13 +16,14 @@ describe("security headers (COMP-003)", () => {
     expect(header("X-Frame-Options")).toBe("DENY");
   });
 
-  describe("full policy in Report-Only (COMP-015)", () => {
+  describe("full policy, enforced (COMP-015)", () => {
     const directive = (policy: string, name: string) => policy.split("; ").find((d) => d.startsWith(`${name} `)) ?? "";
     const prod = contentSecurityPolicy(false);
 
-    it("is reported, not enforced, and the enforced policy stays the small subset", () => {
-      expect(header("Content-Security-Policy-Report-Only")).toContain("default-src 'self'");
-      expect(header("Content-Security-Policy")).not.toContain("default-src");
+    it("is the enforced policy, with no Report-Only copy left behind", () => {
+      expect(header("Content-Security-Policy")).toBe(contentSecurityPolicy(process.env.NODE_ENV === "development"));
+      expect(header("Content-Security-Policy")).toContain("default-src 'self'");
+      expect(header("Content-Security-Policy-Report-Only")).toBeUndefined();
     });
 
     it("lets Turnstile load, render its iframe and call home, and nothing else third-party", () => {

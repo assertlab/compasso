@@ -1,6 +1,11 @@
 import { readFileSync } from "node:fs";
 import type { NextConfig } from "next";
 import { securityHeaders } from "./src/lib/security-headers";
+import { getAuthEnv } from "./src/server/auth/env";
+
+// getAuthEnv() otherwise runs on the first request: validate here so a Vercel production deploy with missing auth
+// variables (Turnstile keys included) fails at build time instead of serving a sign-in page without protection.
+if (process.env.VERCEL_ENV === "production") getAuthEnv();
 
 const { version } = JSON.parse(readFileSync("./package.json", "utf8")) as { version: string };
 

@@ -13,7 +13,7 @@ const schema = z.object({
   GITHUB_CLIENT_ID: z.string().min(1).optional(),
   GITHUB_CLIENT_SECRET: z.string().min(1).optional(),
   // Cloudflare Turnstile on the sign-in code request (COMP-014). Both or neither: with neither, the challenge is off
-  // (local development, Preview deployments, tests).
+  // (local development, Preview deployments, tests). Vercel production requires both, see below.
   TURNSTILE_SITE_KEY: z.string().min(1).optional(),
   TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
 });
@@ -39,6 +39,10 @@ export function getAuthEnv(source: Record<string, string | undefined> = process.
   }
   if (Boolean(env.TURNSTILE_SITE_KEY) !== Boolean(env.TURNSTILE_SECRET_KEY)) {
     throw new Error("TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY must be set together");
+  }
+  // The challenge was once left off in production without anyone noticing: there it is not optional.
+  if (env.VERCEL_ENV === "production" && !env.TURNSTILE_SITE_KEY) {
+    throw new Error("TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY are required in Vercel production");
   }
   return { ...env, BETTER_AUTH_URL: env.BETTER_AUTH_URL ?? "http://localhost:3000" };
 }
