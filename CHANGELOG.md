@@ -2,6 +2,11 @@
 
 Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões seguem o [SemVer](https://semver.org/lang/pt-BR/). Enquanto a versão principal for 0, mudanças de funcionalidade sobem o número do meio. A versão 1.0.0 marca a abertura do produto ao público.
 
+## [Não lançado]
+
+### Segurança
+- O deploy de produção na Vercel agora falha no build se `TURNSTILE_SITE_KEY` e `TURNSTILE_SECRET_KEY` não estiverem definidas (o desafio do login por código estava desligado em produção por falta das variáveis). Preview e desenvolvimento seguem com o desafio opcional.
+
 ## [0.2.0] - 2026-10-13
 
 Primeira versão etiquetada. Reúne tudo o que foi construído desde a estrutura inicial: registro de tempo, relatórios e exportação, acesso por papéis, login próprio e a rodada de endurecimento de segurança.
