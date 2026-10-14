@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { Db } from "@/db";
 import * as authSchema from "@/db/auth-schema";
@@ -7,6 +7,7 @@ import { displayName } from "@/lib/display-name";
 import { createTestDb, type TestDb } from "@/test/db";
 import { anonymizeAccount, AnonymizeBlockedError, planAnonymization } from "./anonymize";
 import { createAuth } from "./auth";
+import { hashEmail } from "./otp-limit";
 import { getAuthEnv } from "./env";
 import { resolveWorkspaceContext, type AuthSessionLike } from "./workspace-context";
 
@@ -114,6 +115,53 @@ describe("anonymizeAccount (ADR-034)", () => {
     expect((await anonymizeAccount(asDb(), a.ctx.userId)).status).toBe("anonymized");
     const [ws] = await db.select().from(workspaces).where(eq(workspaces.id, a.ctx.workspaceId));
     expect(ws.archivedAt).toBeNull();
+  });
+
+  it("locks the person out before touching the domain rows: a request racing the erasure cannot revive a membership", async () => {
+    const a = await person("racing@example.com", "racing-org");
+    // Make the membership update fail, as if the run died right after the identity data went away.
+    await db.execute(sql`create function block_member_update() returns trigger as $$ begin raise exception 'boom'; end $$ language plpgsql`);
+    await db.execute(sql`create trigger block_member_update before update on workspace_members for each row execute function block_member_update()`);
+    try {
+      await expect(anonymizeAccount(asDb(), a.ctx.userId)).rejects.toThrow();
+
+      // The old session no longer resolves (identity is gone), so nothing can write the membership back to active.
+      expect((await resolveWorkspaceContext(asDb(), sessionOf(a.user, a.org.id))).kind).toBe("no-membership");
+      expect(await db.select().from(authSchema.user).where(eq(authSchema.user.id, a.user.id))).toHaveLength(0);
+      expect((await userRow(a.ctx.userId)).deletedAt).toBeNull();
+    } finally {
+      await db.execute(sql`drop trigger block_member_update on workspace_members`);
+    }
+
+    // A rerun finishes the job.
+    expect((await anonymizeAccount(asDb(), a.ctx.userId)).status).toBe("anonymized");
+    const [m] = await db.select().from(workspaceMembers).where(and(eq(workspaceMembers.userId, a.ctx.userId), eq(workspaceMembers.workspaceId, a.ctx.workspaceId)));
+    expect(m.removedAt).not.toBeNull();
+    expect((await userRow(a.ctx.userId)).deletedAt).not.toBeNull();
+  });
+
+  it("sweeps the person's own codes and counters, and only theirs (LIKE wildcards in the address are literal)", async () => {
+    const a = await person("us_er@example.com", "wild-org");
+    const exp = new Date(Date.now() + 60_000);
+    await db.insert(authSchema.verification).values([
+      { id: "v-own-1", identifier: "sign-in-otp-us_er@example.com", value: "x", expiresAt: exp },
+      { id: "v-own-2", identifier: "delete-account-otp-us_er@example.com", value: "x", expiresAt: exp },
+      { id: "v-other", identifier: "sign-in-otp-usXer@example.com", value: "x", expiresAt: exp },
+    ]);
+    await db.insert(authSchema.rateLimit).values([
+      { id: "r-other", key: `otp-email:hour:${hashEmail("someone@example.com")}`, count: 1, lastRequest: Date.now() },
+    ]);
+    // signing in already created the real counter for this address
+    const ownKey = `otp-email:hour:${hashEmail("us_er@example.com")}`;
+    expect((await db.select().from(authSchema.rateLimit)).map((r) => r.key)).toContain(ownKey);
+    await anonymizeAccount(asDb(), a.ctx.userId);
+    const left = (await db.select().from(authSchema.verification)).map((v) => v.id);
+    expect(left).toContain("v-other");
+    expect(left).not.toContain("v-own-1");
+    expect(left).not.toContain("v-own-2");
+    const counters = (await db.select().from(authSchema.rateLimit)).map((r) => r.key);
+    expect(counters).toContain(`otp-email:hour:${hashEmail("someone@example.com")}`);
+    expect(counters).not.toContain(ownKey);
   });
 
   it("does not resurrect the old person when the same e-mail signs in again", async () => {

@@ -34,7 +34,7 @@ export async function deleteMyAccount(_prev: DeleteAccountState, formData: FormD
     result = await deleteAccountWithCode(userId, { code: text(formData, "code"), confirmation: text(formData, "confirmation") });
   } catch (error) {
     console.error("delete-account: erasure failed", describeError(error));
-    return { ok: false, codeSent: true, message: "Não foi possível excluir a conta. Tente novamente: o processo continua de onde parou." };
+    return { ok: false, codeSent: true, message: "Não foi possível concluir a exclusão. Se você ainda estiver conectado, peça um novo código e tente de novo; se não conseguir mais entrar, fale com o suporte do Compasso para concluí-la." };
   }
   if (!result.ok) return { ok: false, codeSent: result.reason !== "no-code" && result.reason !== "expired" && result.reason !== "too-many-attempts", message: deletionRefusalMessage(result) };
   // Outside the try/catch: redirect() throws. Sessions went with the identity data, so this is a clean sign-out.

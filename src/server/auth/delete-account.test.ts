@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Db } from "@/db";
 import * as authSchema from "@/db/auth-schema";
 import { users, workspaceMembers as workspaceMembersTable } from "@/db/schema";
@@ -26,6 +26,11 @@ describe("account deletion by code (ADR-037)", () => {
   beforeEach(async () => {
     db = await createTestDb();
     mails = [];
+  });
+
+  // One in-memory Postgres per test: release it, or the worker's memory grows with every test.
+  afterEach(async () => {
+    await db.$client.close();
   });
 
   it("mails a code to the account address and stores only its hash", async () => {
@@ -134,5 +139,28 @@ describe("account deletion by code (ADR-037)", () => {
     await requestDeletionCode(asDb(), a.userId, send);
     await confirmDeletion(asDb(), a.userId, { code: codeFrom(mails[0]), confirmation: "EXCLUIR" });
     expect(await requestDeletionCode(asDb(), a.userId, send)).toEqual({ ok: false, reason: "not-found" });
+  });
+
+  it("with the correct code sent in parallel, only one request erases and the code is spent once", async () => {
+    const a = await seedWorkspace(db, "otto");
+    await requestDeletionCode(asDb(), a.userId, send);
+    const code = codeFrom(mails[0]);
+    const results = await Promise.all(Array.from({ length: 4 }, () => confirmDeletion(asDb(), a.userId, { code, confirmation: "EXCLUIR" })));
+    expect(results.filter((r) => r.ok && r.archived.length > 0)).toHaveLength(1);
+    expect(await stored()).toHaveLength(0);
+  });
+
+  it("uses the newest code when parallel requests left two rows", async () => {
+    const a = await seedWorkspace(db, "paulo");
+    await requestDeletionCode(asDb(), a.userId, send);
+    // the duplicate a race can leave: an older row stored *before* the mailed one
+    const [real] = await stored();
+    await db.delete(authSchema.verification).where(eq(authSchema.verification.id, real.id));
+    await db.insert(authSchema.verification).values({ ...real, id: "older", value: JSON.stringify({ hash: "0".repeat(64), attempts: 0 }), createdAt: new Date(real.createdAt.getTime() - 60_000) });
+    await db.insert(authSchema.verification).values(real);
+
+    const result = await confirmDeletion(asDb(), a.userId, { code: codeFrom(mails[0]), confirmation: "EXCLUIR" });
+    expect(result.ok).toBe(true);
+    expect(await stored()).toHaveLength(0);
   });
 });
