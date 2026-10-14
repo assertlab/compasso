@@ -148,7 +148,11 @@ O nome do workspace e as suas iniciais no canto superior direito abrem o menu da
 
 ![Menu da conta com nome, e-mail, lista de workspaces, "Criar ou ver convites" e botão Sair](./img/03-menu-da-conta.png)
 
-Nele você **troca de workspace**, **cria um workspace** novo ou **vê os convites** que recebeu, e **sai** da conta. O ícone ao lado (monitor, sol ou lua) alterna o tema entre sistema, claro e escuro.
+Nele você **troca de workspace**, **cria um workspace** novo, **vê os convites** que recebeu, abre **Minha conta e meus dados** e **sai** da conta. O ícone ao lado (monitor, sol ou lua) alterna o tema entre sistema, claro e escuro.
+
+### Exportar meus dados
+
+Em **Minha conta e meus dados** (`/conta`), o botão **Baixar meus dados (JSON)** baixa uma cópia do que é seu: os registros de horas de todos os workspaces em que você trabalhou (inclusive os removidos, o cronômetro em andamento e os workspaces que você já deixou), com início e término em UTC e o fuso de cada registro, os nomes de clientes, projetos, tarefas e tags que eles usam, e os dados da sua conta. O arquivo não traz dados de outras pessoas nem identificadores internos do banco. Para relatórios por período em planilha ou PDF, use [Relatórios](#6-relatórios-e-exportação).
 
 O Compasso é um aplicativo web instalável (PWA): pelo menu do navegador é possível instalá-lo na tela inicial do celular ou do computador.
 
