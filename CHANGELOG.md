@@ -4,6 +4,10 @@ Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 
 ## [Não lançado]
 
+## [0.4.0] - 2026-10-14
+
+Beta fechado: o acesso a contas novas passa a depender de uma lista de e-mails liberados, e o serviço ganha Termos de Uso e Política de Privacidade.
+
 ### Legal
 - Novas páginas públicas **Termos de Uso** (`/termos`) e **Política de Privacidade** (`/privacidade`), em linguagem simples, abertas a quem ainda não entrou. A política diz quais dados são guardados, para quê, quais fornecedores os tratam (Neon, Vercel, Resend, Cloudflare e, se a pessoa escolher, Google ou GitHub), que há transferência para fora do Brasil, o que acontece com os dados ao excluir a conta e como exercer os direitos da LGPD. Responsável: ASSERT Lab; contato: `contato@assertlab.com`. Os textos ainda não passaram por revisão jurídica (isso fica para antes de qualquer abertura pública).
 - A tela de entrada mostra o aviso de que, ao continuar, a pessoa concorda com os dois textos (com a data da versão) e que é preciso ter 18 anos ou mais; o rodapé de todas as telas ganhou os links. O aceite não é gravado no banco (ADR-039).
