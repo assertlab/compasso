@@ -30,9 +30,17 @@ describe("getAuthEnv", () => {
   it("requires Turnstile on Vercel production only", () => {
     const base = { NODE_ENV: "production", BETTER_AUTH_SECRET: secret, BETTER_AUTH_URL: "https://app.example.com" };
     expect(() => getAuthEnv({ ...base, VERCEL_ENV: "production" })).toThrow(/required in Vercel production/);
-    expect(getAuthEnv({ ...base, VERCEL_ENV: "production", TURNSTILE_SITE_KEY: "site", TURNSTILE_SECRET_KEY: "secret" }).TURNSTILE_SITE_KEY).toBe("site");
+    expect(getAuthEnv({ ...base, VERCEL_ENV: "production", TURNSTILE_SITE_KEY: "site", TURNSTILE_SECRET_KEY: "secret", ACCESS_MODE: "closed" }).TURNSTILE_SITE_KEY).toBe("site");
     // Preview deployments and plain production builds (CI) keep the challenge optional.
     expect(getAuthEnv({ ...base, VERCEL_ENV: "preview" }).TURNSTILE_SITE_KEY).toBeUndefined();
     expect(getAuthEnv(base).TURNSTILE_SITE_KEY).toBeUndefined();
+  });
+  it("defaults ACCESS_MODE to open, and requires an explicit one on Vercel production", () => {
+    expect(getAuthEnv({ BETTER_AUTH_SECRET: secret }).ACCESS_MODE).toBe("open");
+    expect(getAuthEnv({ BETTER_AUTH_SECRET: secret, ACCESS_MODE: "closed" }).ACCESS_MODE).toBe("closed");
+    expect(() => getAuthEnv({ BETTER_AUTH_SECRET: secret, ACCESS_MODE: "invite" })).toThrow();
+    const prod = { NODE_ENV: "production", BETTER_AUTH_SECRET: secret, BETTER_AUTH_URL: "https://app.example.com", VERCEL_ENV: "production", TURNSTILE_SITE_KEY: "s", TURNSTILE_SECRET_KEY: "k" };
+    expect(() => getAuthEnv(prod)).toThrow(/ACCESS_MODE/);
+    expect(getAuthEnv({ ...prod, ACCESS_MODE: "closed" }).ACCESS_MODE).toBe("closed");
   });
 });

@@ -8,6 +8,7 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { getDb, type Db } from "@/db";
 import * as authSchema from "@/db/auth-schema";
 import { users, workspaceMembers, workspaces } from "@/db/schema";
+import { mayCreateAccount } from "./access";
 import { getAuthEnv } from "./env";
 import { INVITATION_LISTING_PATHS, mayListInvitations } from "./invitation-access";
 import { invitationText, INVITATION_SUBJECT } from "./invite-mail";
@@ -106,6 +107,12 @@ export function createAuth({
           console.warn("[auth] otp quota exceeded", { emailHash: hashEmail(email), ip: ctx.request?.headers.get("x-forwarded-for")?.split(",")[0]?.trim() });
           throw new APIError("TOO_MANY_REQUESTS", { message: "Muitos códigos pedidos para este e-mail. Tente de novo mais tarde." });
         }
+        // Closed beta (ADR-038): no code is mailed to an address that may not create an account. This does tell the caller whether an
+        // address has access; accepted for a closed beta, and the quota above still bounds probing. The client sends the person to /acesso-restrito.
+        if (!(await mayCreateAccount(db, env.ACCESS_MODE, email))) {
+          console.warn("[auth] access gate refused", { emailHash: hashEmail(email) });
+          throw new APIError("FORBIDDEN", { message: "Acesso restrito.", code: "ACCESS_RESTRICTED" });
+        }
       }),
       // `/organization/leave` deletes the auth member but, unlike `remove-member`, runs no organization hook (COMP-008): without
       // this the person would stay "active" in the domain tables (project candidates, anonymization plan, reports).
@@ -119,7 +126,8 @@ export function createAuth({
     databaseHooks: {
       user: {
         // E-mail codes create verified users; an unverified one can only come from a social provider (COMP-001).
-        create: { before: async (user) => (user.emailVerified ? undefined : false) },
+        // Also the last line for the closed beta (ADR-038), covering social sign-in: the code request above is only for e-mail codes.
+        create: { before: async (user) => (user.emailVerified && (await mayCreateAccount(db, env.ACCESS_MODE, user.email)) ? undefined : false) },
       },
       session: {
         create: {

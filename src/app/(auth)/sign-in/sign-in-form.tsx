@@ -18,7 +18,7 @@ export function SignInForm({ next, providers, turnstileSiteKey, socialFailed, ac
   const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
-  const [error, setError] = useState<string | null>(socialFailed ? "Não foi possível entrar com essa conta. Tente o código por e-mail." : null);
+  const [error, setError] = useState<string | null>(socialFailed ? "Não foi possível entrar com essa conta. Tente o código por e-mail. Se ainda não tem acesso ao Compasso (beta fechado), veja como pedir em /acesso-restrito." : null);
   const [pending, setPending] = useState(false);
   const { containerRef, token: challengeToken, status: challengeStatus, reset: resetChallenge } = useTurnstile(turnstileSiteKey);
   // With a site key the request needs a fresh token (single use); without one the challenge is off.
@@ -37,6 +37,7 @@ export function SignInForm({ next, providers, turnstileSiteKey, socialFailed, ac
     setPending(false);
     if (err) {
       resetChallenge(); // the token was spent, successful or not
+      if (err.code === "ACCESS_RESTRICTED") return window.location.replace("/acesso-restrito");
       if (err.status === 429) return setError("Muitas tentativas. Aguarde um minuto e tente de novo.");
       if (err.status === 400 || err.status === 403 || err.status === 500) {
         return setError(needsToken ? "Não foi possível confirmar que você é uma pessoa. Recarregue a página e tente de novo." : "Não foi possível enviar o código. Confira o e-mail.");

@@ -19,7 +19,7 @@ O Compasso registra o tempo de trabalho por cliente, projeto e tarefa e transfor
 
 ## 1. Entrar
 
-Não existe senha. Você digita o e-mail, recebe um código de 6 dígitos e o informa na tela seguinte. Também é possível entrar com Google ou GitHub. No primeiro acesso a conta é criada automaticamente: use sempre o mesmo e-mail.
+Não existe senha. Você digita o e-mail, recebe um código de 6 dígitos e o informa na tela seguinte. Também é possível entrar com Google ou GitHub. No primeiro acesso a conta é criada automaticamente: use sempre o mesmo e-mail. Enquanto o Compasso estiver em beta fechado, só podem criar conta as pessoas que o ASSERT Lab liberou ou que receberam um convite para um workspace; quem tentar sem acesso vê uma página explicando como pedir.
 
 ![Tela de entrada com campo de e-mail, botão "Receber código" e botões Google e GitHub](./img/01-entrar.png)
 

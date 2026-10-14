@@ -4,6 +4,9 @@ Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 
 ## [Não lançado]
 
+### Acesso
+- **Beta fechado** (`ACCESS_MODE=closed`): só cria conta quem está na lista de e-mails liberados, tem um convite pendente para um workspace ou já tem conta. Quem tenta sem acesso não recebe código e cai na página **Acesso restrito**, que explica como pedir. A lista é gerida pelo script `scripts/access.ts` (listar, adicionar, remover); o login por Google e GitHub passa pela mesma regra na criação da conta. Em produção da Vercel a variável é obrigatória (o build falha sem ela). Nova tabela `allowed_emails` (migração 0007).
+
 ## [0.3.1] - 2026-10-14
 
 Correções da revisão de fechamento da 0.3.0, na exclusão de conta.
