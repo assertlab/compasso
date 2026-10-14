@@ -2,7 +2,7 @@
 
 O Compasso registra o tempo de trabalho por cliente, projeto e tarefa e transforma esses registros em relatórios que você baixa em XLSX, CSV ou PDF, sem plano pago. Este guia cobre o uso do dia a dia, da primeira entrada ao relatório do mês.
 
-> As telas usam dados de demonstração (clientes marcados com "(demo)") e correspondem à versão 0.1.0, exceto o menu da conta e a página "Minha conta", capturados na 0.2.1. Os e-mails das capturas foram desfocados.
+> As telas usam dados de demonstração (clientes marcados com "(demo)") e correspondem à versão 0.1.0, exceto o menu da conta e a página "Minha conta" (incluindo a exclusão de conta), capturados na 0.2.1. Os e-mails das capturas foram desfocados.
 
 **Neste guia**
 
@@ -160,7 +160,15 @@ Em **Minha conta e meus dados** (`/conta`), o botão **Baixar meus dados (JSON)*
 
 Na mesma página, o cartão **Excluir minha conta** apaga a sua conta na hora, sem prazo de carência e sem volta. Seu nome, e-mail e acessos são removidos e você sai de todos os workspaces. As horas que você registrou continuam nos workspaces, atribuídas a **Usuário removido**, para que os relatórios já fechados não mudem. Workspaces em que você era a única pessoa são arquivados.
 
+![Cartão "Excluir minha conta" na página Minha conta, em vermelho, com o botão Enviar código por e-mail](./img/16-excluir-conta.png)
+
 Para confirmar, clique em **Enviar código por e-mail**, digite o código de 6 dígitos (vale 10 minutos) e a palavra **EXCLUIR**. Se você é a única pessoa administradora de um workspace que tem outros membros, o botão não aparece: a tela lista esses workspaces, e é preciso promover outra pessoa a administradora antes. Baixe uma cópia dos seus dados (cartão acima) antes de excluir, se quiser guardá-los.
+
+![Cartão de exclusão com os campos do código recebido por e-mail e da palavra EXCLUIR, e os botões Excluir minha conta para sempre e Reenviar código](./img/17-excluir-conta-codigo.png)
+
+Ao concluir, você volta à tela de entrada com o aviso de que a conta foi excluída.
+
+![Tela de entrada com o aviso "Sua conta foi excluída. Os dados de acesso foram apagados e você saiu de todos os workspaces."](./img/18-conta-excluida.png)
 
 O Compasso é um aplicativo web instalável (PWA): pelo menu do navegador é possível instalá-lo na tela inicial do celular ou do computador.
 
