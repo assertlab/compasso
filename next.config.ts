@@ -16,9 +16,9 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   // Loaded from node_modules at runtime instead of being bundled (large CommonJS dependency tree).
   serverExternalPackages: ["exceljs", "@react-pdf/renderer"],
-  // The PDF reads IBM Plex (node_modules) and the app icon at runtime; make sure the files ship with the route on Vercel.
+  // The PDF reads IBM Plex (node_modules) at runtime; make sure the files ship with the route on Vercel.
   outputFileTracingIncludes: {
-    "/relatorios/export": ["./node_modules/@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-{400,600}-normal.woff", "./public/icons/icon-192.png"],
+    "/relatorios/export": ["./node_modules/@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-{400,600}-normal.woff"],
   },
   partialPrefetching: true,
   async headers() {
