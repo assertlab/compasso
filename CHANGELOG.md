@@ -4,8 +4,15 @@ Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 
 ## [Não lançado]
 
+## [0.4.2] - 2026-10-16
+
+Ícones do app com fundo azul-petróleo e limpeza dos arquivos do logo antigo. Não há mudança de funcionalidade.
+
 ### Identidade visual
 - O ícone do app instalado (PWA) e o ícone de tela de início do iOS passam a ter fundo azul-petróleo, em vez de branco: no ícone "any" os cantos são arredondados e transparentes; no do iOS o fundo é opaco (o sistema arredonda). Combinam com a tela de abertura e com o ícone adaptável do Android. Quem já instalou o app vê o novo ícone depois que o navegador atualizar o cache (service worker v4).
+
+### Manutenção
+- Removidos os arquivos do logo antigo (JPG) e atualizada a estrutura de pastas no README.
 
 ## [0.4.1] - 2026-10-16
 
@@ -100,6 +107,7 @@ Primeira versão etiquetada. Reúne tudo o que foi construído desde a estrutura
 
 Estrutura inicial: Next.js, esquema Drizzle, base da PWA, design system e integração contínua.
 
+[0.4.2]: https://github.com/assertlab/compasso/releases/tag/v0.4.2
 [0.4.1]: https://github.com/assertlab/compasso/releases/tag/v0.4.1
 [0.4.0]: https://github.com/assertlab/compasso/releases/tag/v0.4.0
 [0.3.1]: https://github.com/assertlab/compasso/releases/tag/v0.3.1
