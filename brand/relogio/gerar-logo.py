@@ -37,7 +37,7 @@ def hand(angle, w, L, tail, nose, color):
     s = " ".join(f"{x:.2f},{y:.2f}" for x,y in pts)
     return f'<polygon points="{s}" fill="{color}" transform="rotate({angle})"/>'
 
-def build(theme, tier, size=512, rounded=False):
+def _body(theme, tier):
     c = THEMES[theme]; p = TIERS[tier]; g = []
     if c["disc"]:
         g.append(f'<circle r="{p["ring_r"]+p["ring_w"]/2}" fill="{c["disc"]}"/>')
@@ -66,7 +66,34 @@ def build(theme, tier, size=512, rounded=False):
         s = [(-1.4,-76),(1.4,-76),(2.6,0),(3.0,18),(0,34),(-3.0,18),(-2.6,0)]
         g.append('<polygon points="' + " ".join(f"{x},{y}" for x,y in s) + f'" fill="{RED}"/>')
     g.append(f'<circle r="{hub_r}" fill="{RED}"/>')
-    body = "\n  ".join(g)
+    return "\n  ".join(g)
+
+def build_mark(theme="lightB", tier="icon"):
+    """Marca sem fundo (disco incluso), viewBox centrado: usada pelo componente Logo."""
+    p = TIERS[tier]; r = p["ring_r"] + p["ring_w"] / 2
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{-r:g} {-r:g} {2*r:g} {2*r:g}">\n  '
+            + _body(theme, tier) + "\n</svg>\n")
+
+def build_mark_tsx():
+    """Mesma marca como JSX (gera src/components/logo-mark.tsx)."""
+    import re
+    inner = _body("lightB", "icon")
+    inner = inner.replace("stroke-width", "strokeWidth").replace("stroke-linecap", "strokeLinecap")
+    inner = inner.replace("\n  ", "\n      ")
+    r = TIERS["icon"]["ring_r"] + TIERS["icon"]["ring_w"] / 2
+    return f'''// GERADO por brand/relogio/gerar-logo.py — não editar à mão (logo-mark.test.ts confere).
+export function LogoMark({{ className }}: {{ className?: string }}) {{
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="{-r:g} {-r:g} {2*r:g} {2*r:g}" aria-hidden="true" focusable="false" className={{className}}>
+      {inner}
+    </svg>
+  );
+}}
+'''
+
+def build(theme, tier, size=512, rounded=False):
+    c = THEMES[theme]; p = TIERS[tier]
+    body = _body(theme, tier)
     rx = ' rx="112"' if rounded else ''
     return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="{size}" height="{size}">
   <rect width="512" height="512" fill="{c["bg"]}"{rx}/>
@@ -74,3 +101,10 @@ def build(theme, tier, size=512, rounded=False):
   {body}
   </g>
 </svg>'''
+
+
+if __name__ == "__main__":
+    import pathlib
+    here = pathlib.Path(__file__).parent
+    (here / "compasso-marca.svg").write_text(build_mark())
+    (here.parents[1] / "src/components/logo-mark.tsx").write_text(build_mark_tsx())
