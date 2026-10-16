@@ -4,6 +4,16 @@ Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 
 ## [Não lançado]
 
+## [0.4.1] - 2026-10-16
+
+Nova identidade visual: o logo passa a ser um relógio, em versão vetorial, e os ícones do app foram refeitos. Não há mudança de funcionalidade.
+
+### Identidade visual
+- Novo logo "relógio" (ADR-040). O cabeçalho, o menu lateral, as telas de entrada e as páginas legais passam a usar a marca vetorial, com fundo transparente, nítida nos temas claro e escuro (antes era uma imagem de fundo branco).
+- Ícone do app instalado, ícone de tela de início do iOS e favicon refeitos. O ícone adaptável do Android (maskable) ganhou arte própria dentro da área segura e o favicon tem uma versão simplificada para 16 px. Quem já instalou o app pode ver o ícone novo só depois que o navegador atualizar o cache (service worker v3).
+- O banner do relatório em PDF usa a marca vetorial, sem o quadrado branco do ícone anterior.
+- Os arquivos do logo e o script que os gera ficam em `brand/relogio`; um teste confere que o componente do site e o do PDF continuam iguais ao SVG de origem.
+
 ### Documentação
 - Guia de uso: nova subseção **Termos, privacidade e contato** (seção 8) e capturas da entrada, do código, da conta excluída e do acesso restrito refeitas na 0.4.0 (com o aviso de aceite e os links do rodapé; o e-mail da tela de código segue desfocado).
 
@@ -87,6 +97,8 @@ Primeira versão etiquetada. Reúne tudo o que foi construído desde a estrutura
 
 Estrutura inicial: Next.js, esquema Drizzle, base da PWA, design system e integração contínua.
 
+[0.4.1]: https://github.com/assertlab/compasso/releases/tag/v0.4.1
+[0.4.0]: https://github.com/assertlab/compasso/releases/tag/v0.4.0
 [0.3.1]: https://github.com/assertlab/compasso/releases/tag/v0.3.1
 [0.3.0]: https://github.com/assertlab/compasso/releases/tag/v0.3.0
 [0.2.1]: https://github.com/assertlab/compasso/releases/tag/v0.2.1
