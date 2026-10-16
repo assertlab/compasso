@@ -1,11 +1,12 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { Document, Font, Image, Page, renderToBuffer, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Document, Font, Page, renderToBuffer, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { type ExportRow, formatDateBr, formatTimeSpan } from "@/lib/report-export";
 import { axisTicks, buildCharts, formatAxisHours, formatPercent, OTHERS_ID, type ReportCharts, type ShareItem } from "@/lib/report-charts";
 import { type DayMatrix, formatHm } from "@/lib/report-days";
 import { GROUP_LABELS, type ReportSummary } from "@/lib/report";
 import { formatHms, toDecimalHours } from "@/lib/time";
+import { PdfLogoMark } from "@/server/logo-mark-pdf";
 
 const FONT = "Plex";
 const FALLBACK = "Helvetica";
@@ -23,10 +24,6 @@ function registerFonts() {
 registerFonts();
 // No automatic hyphenation: "Oracle" must not become "Ora-cle" in narrow columns.
 Font.registerHyphenationCallback((word) => [word]);
-
-/** App icon (compass on navy) used in the banner; skipped if the file is not on disk. */
-const iconPath = path.join(process.cwd(), "public/icons/icon-192.png");
-const icon = existsSync(iconPath) ? iconPath : null;
 
 const NAVY = "#0e2e47";
 const MUTED = "#5b6770";
@@ -68,9 +65,8 @@ function Banner({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <View style={s.banner}>
       <View style={s.brand}>
-        {/* react-pdf Image has no alt prop; the wordmark next to it carries the name. */}
-        {/* eslint-disable-next-line jsx-a11y/alt-text */}
-        {icon && <Image src={icon} style={{ width: 26, height: 26, borderRadius: 5 }} />}
+        {/* Vector mark (ADR-040): no file to ship with the route; the wordmark next to it carries the name. */}
+        <PdfLogoMark size={26} />
         <Text style={s.brandName}>Compasso</Text>
       </View>
       <View>
