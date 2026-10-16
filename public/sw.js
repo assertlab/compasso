@@ -7,7 +7,7 @@
  *    responses, no authenticated data. Anything not matched goes straight to the network.
  * Bump VERSION to drop old caches.
  */
-const VERSION = "v3";
+const VERSION = "v4";
 const CACHE = `compasso-static-${VERSION}`;
 const OFFLINE_URL = "/offline";
 

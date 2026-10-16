@@ -4,6 +4,9 @@ Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 
 ## [Não lançado]
 
+### Identidade visual
+- O ícone do app instalado (PWA) e o ícone de tela de início do iOS passam a ter fundo azul-petróleo, em vez de branco: no ícone "any" os cantos são arredondados e transparentes; no do iOS o fundo é opaco (o sistema arredonda). Combinam com a tela de abertura e com o ícone adaptável do Android. Quem já instalou o app vê o novo ícone depois que o navegador atualizar o cache (service worker v4).
+
 ## [0.4.1] - 2026-10-16
 
 Nova identidade visual: o logo passa a ser um relógio, em versão vetorial, e os ícones do app foram refeitos. Não há mudança de funcionalidade.
