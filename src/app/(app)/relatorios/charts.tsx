@@ -54,14 +54,17 @@ function BarsCard({ charts }: { charts: ReportCharts }) {
 
 export type PlotBar = { key: string; label: string; /** Tooltip and screen-reader text. */ title: string; seconds: number };
 
-/** The bars with their hour axis: shared by the hours-per-day chart and the weekday chart. */
-export function BarPlot({ bars, max }: { bars: PlotBar[]; max: number }) {
+/**
+ * The bars with their hour axis: shared by the hours-per-day chart and the weekday chart. With `valueLabel`
+ * each bar carries its value on top (only for charts with few bars; 31 labels would not fit).
+ */
+export function BarPlot({ bars, max, valueLabel }: { bars: PlotBar[]; max: number; valueLabel?: (seconds: number) => string }) {
   const ticks = axisTicks(max);
   const top = ticks[ticks.length - 1] || 1;
   const labelEvery = Math.ceil(bars.length / 7);
 
   return (
-    <div className="grid grid-cols-[auto_1fr] gap-x-2">
+    <div className={`grid grid-cols-[auto_1fr] gap-x-2 ${valueLabel ? "pt-5" : ""}`}>
       {/* y axis */}
       <div className={`relative ${PLOT_HEIGHT} w-9 text-right text-[11px] text-muted-foreground`} aria-hidden>
         {ticks.map((t) => (
@@ -83,9 +86,15 @@ export function BarPlot({ bars, max }: { bars: PlotBar[]; max: number }) {
               {b.seconds > 0 && (
                 <span
                   aria-hidden
-                  className="w-full max-w-6 rounded-t-[4px] bg-primary"
+                  className="relative w-full max-w-6 rounded-t-[4px] bg-primary"
                   style={{ height: `max(2px, ${(b.seconds / top) * 100}%)`, marginInline: "1px" }}
-                />
+                >
+                  {valueLabel && (
+                    <span className="absolute bottom-full left-1/2 mb-0.5 -translate-x-1/2 whitespace-nowrap text-[11px] leading-none tabular-nums text-foreground">
+                      {valueLabel(b.seconds)}
+                    </span>
+                  )}
+                </span>
               )}
             </li>
           ))}
