@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { axisTicks, formatAxisHours, formatPercent, OTHERS_ID, type BarItem, type ReportCharts, type ShareItem } from "@/lib/report-charts";
 import { formatHms } from "@/lib/time";
@@ -9,10 +10,22 @@ const PLOT_HEIGHT = "h-40";
  * text, and the table views below ("Por dia", the summary) carry the exact numbers. One hue (the brand
  * primary) because bars compare magnitude; the red is never used here (ADR-016).
  */
-export function ReportChartsSection({ charts, activityTitle, showPeople }: { charts: ReportCharts; activityTitle: string; showPeople: boolean }) {
+export function ReportChartsSection({
+  charts,
+  activityTitle,
+  showPeople,
+  afterBars,
+}: {
+  charts: ReportCharts;
+  activityTitle: string;
+  showPeople: boolean;
+  /** Extra chart shown right below the hours-per-day chart (the dashboard adds the weekday view). */
+  afterBars?: ReactNode;
+}) {
   return (
     <>
       <BarsCard charts={charts} />
+      {afterBars}
       <div className="grid gap-4 lg:grid-cols-2">
         <SharesCard title="Por projeto" items={charts.projects} />
         <SharesCard title={activityTitle} items={charts.activities} />
@@ -27,59 +40,68 @@ const barTitle = (b: BarItem, granularity: ReportCharts["granularity"]) =>
 
 function BarsCard({ charts }: { charts: ReportCharts }) {
   const { bars, granularity } = charts;
-  const ticks = axisTicks(charts.barMax);
-  const top = ticks[ticks.length - 1] || 1;
-  const labelEvery = Math.ceil(bars.length / 7);
-
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Horas por {granularity === "dia" ? "dia" : "semana"}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-[auto_1fr] gap-x-2">
-          {/* y axis */}
-          <div className={`relative ${PLOT_HEIGHT} w-9 text-right text-[11px] text-muted-foreground`} aria-hidden>
-            {ticks.map((t) => (
-              <span key={t} className="absolute right-0 -translate-y-1/2 leading-none" style={{ bottom: `${(t / top) * 100}%` }}>
-                {formatAxisHours(t)}
-              </span>
-            ))}
-          </div>
-
-          {/* plot */}
-          <div className={`relative ${PLOT_HEIGHT}`}>
-            {ticks.map((t) => (
-              <div key={t} aria-hidden className="absolute inset-x-0 border-t border-border" style={{ bottom: `${(t / top) * 100}%` }} />
-            ))}
-            <ul className="absolute inset-0 flex items-end">
-              {bars.map((b) => (
-                <li key={b.key} title={barTitle(b, granularity)} className="flex h-full flex-1 items-end justify-center hover:bg-muted/60">
-                  <span className="sr-only">{barTitle(b, granularity)}</span>
-                  {b.seconds > 0 && (
-                    <span
-                      aria-hidden
-                      className="w-full max-w-6 rounded-t-[4px] bg-primary"
-                      style={{ height: `max(2px, ${(b.seconds / top) * 100}%)`, marginInline: "1px" }}
-                    />
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* x axis */}
-          <div />
-          <ul aria-hidden className="mt-1 flex h-4 text-[11px] text-muted-foreground">
-            {bars.map((b, i) => (
-              <li key={b.key} className="relative flex-1">
-                {i % labelEvery === 0 && <span className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap">{b.label}</span>}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <BarPlot bars={bars.map((b) => ({ key: b.key, label: b.label, title: barTitle(b, granularity), seconds: b.seconds }))} max={charts.barMax} />
       </CardContent>
     </Card>
+  );
+}
+
+export type PlotBar = { key: string; label: string; /** Tooltip and screen-reader text. */ title: string; seconds: number };
+
+/** The bars with their hour axis: shared by the hours-per-day chart and the weekday chart. */
+export function BarPlot({ bars, max }: { bars: PlotBar[]; max: number }) {
+  const ticks = axisTicks(max);
+  const top = ticks[ticks.length - 1] || 1;
+  const labelEvery = Math.ceil(bars.length / 7);
+
+  return (
+    <div className="grid grid-cols-[auto_1fr] gap-x-2">
+      {/* y axis */}
+      <div className={`relative ${PLOT_HEIGHT} w-9 text-right text-[11px] text-muted-foreground`} aria-hidden>
+        {ticks.map((t) => (
+          <span key={t} className="absolute right-0 -translate-y-1/2 leading-none" style={{ bottom: `${(t / top) * 100}%` }}>
+            {formatAxisHours(t)}
+          </span>
+        ))}
+      </div>
+
+      {/* plot */}
+      <div className={`relative ${PLOT_HEIGHT}`}>
+        {ticks.map((t) => (
+          <div key={t} aria-hidden className="absolute inset-x-0 border-t border-border" style={{ bottom: `${(t / top) * 100}%` }} />
+        ))}
+        <ul className="absolute inset-0 flex items-end">
+          {bars.map((b) => (
+            <li key={b.key} title={b.title} className="flex h-full flex-1 items-end justify-center hover:bg-muted/60">
+              <span className="sr-only">{b.title}</span>
+              {b.seconds > 0 && (
+                <span
+                  aria-hidden
+                  className="w-full max-w-6 rounded-t-[4px] bg-primary"
+                  style={{ height: `max(2px, ${(b.seconds / top) * 100}%)`, marginInline: "1px" }}
+                />
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* x axis */}
+      <div />
+      <ul aria-hidden className="mt-1 flex h-4 text-[11px] text-muted-foreground">
+        {bars.map((b, i) => (
+          <li key={b.key} className="relative flex-1">
+            {i % labelEvery === 0 && <span className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap">{b.label}</span>}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
