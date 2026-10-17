@@ -4,6 +4,10 @@ Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 
 ## [Não lançado]
 
+## [0.5.1] - 2026-10-17
+
+O código passa a ser de propriedade do ASSERT Lab, todos os direitos reservados (ADR-041). Não há mudança de funcionalidade.
+
 ### Licença
 - O código passa de MIT para "Todos os direitos reservados" (ADR-041). O rodapé, o item 8 dos Termos de Uso (versão de 17 de outubro de 2026), o `LICENSE`, o README e o `package.json` (`UNLICENSED`) dizem isso. As versões 0.5.0 e anteriores foram publicadas sob MIT e continuam sob ela para quem as recebeu. Não há mudança de funcionalidade.
 
@@ -118,6 +122,7 @@ Primeira versão etiquetada. Reúne tudo o que foi construído desde a estrutura
 
 Estrutura inicial: Next.js, esquema Drizzle, base da PWA, design system e integração contínua.
 
+[0.5.1]: https://github.com/assertlab/compasso/releases/tag/v0.5.1
 [0.5.0]: https://github.com/assertlab/compasso/releases/tag/v0.5.0
 [0.4.2]: https://github.com/assertlab/compasso/releases/tag/v0.4.2
 [0.4.1]: https://github.com/assertlab/compasso/releases/tag/v0.4.1
