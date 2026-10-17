@@ -85,7 +85,7 @@ export default function TermosPage() {
 
       <Section title="8. Código-fonte e marca">
         <P>
-          O código do {SERVICE_NAME} é aberto e licenciado sob MIT. A licença vale para o código, não para os dados de ninguém. O nome e o logotipo do {SERVICE_NAME} e do ASSERT Lab pertencem ao grupo.
+          O código do {SERVICE_NAME} pertence ao ASSERT Lab e não é licenciado a terceiros: todos os direitos reservados. Versões antigas, publicadas sob a licença MIT, continuam sob ela. A reserva de direitos vale para o código, não para os dados de ninguém. O nome e o logotipo do {SERVICE_NAME} e do ASSERT Lab pertencem ao grupo.
         </P>
       </Section>
 

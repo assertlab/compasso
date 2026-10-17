@@ -11,7 +11,7 @@ export const LEGAL_PATHS = { terms: "/termos", privacy: "/privacidade" } as cons
  * Version of both texts, as an ISO date. Bump it whenever either text changes in a way people should know about:
  * it is printed on both pages and on the sign-in notice. Acceptance is not stored (ADR-039), so this is the only trace.
  */
-export const LEGAL_VERSION = "2026-10-14";
+export const LEGAL_VERSION = "2026-10-17";
 
 /** Minimum age to use the service. */
 export const MIN_AGE = 18;

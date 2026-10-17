@@ -4,6 +4,9 @@ Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 
 ## [Não lançado]
 
+### Licença
+- O código passa de MIT para "Todos os direitos reservados" (ADR-041). O rodapé, o item 8 dos Termos de Uso (versão de 17 de outubro de 2026), o `LICENSE`, o README e o `package.json` (`UNLICENSED`) dizem isso. As versões 0.5.0 e anteriores foram publicadas sob MIT e continuam sob ela para quem as recebeu. Não há mudança de funcionalidade.
+
 ## [0.5.0] - 2026-10-17
 
 Novo gráfico no Painel: horas por dia da semana, com valor no topo de cada barra.
