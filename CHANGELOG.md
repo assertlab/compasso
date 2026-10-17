@@ -4,6 +4,9 @@ Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 
 ## [Não lançado]
 
+### Painel
+- Novo gráfico "Horas por dia da semana", de domingo a sábado. Com um período de uma semana, mostra o total de horas de cada dia da semana. Com mais de uma semana, mostra a soma por padrão e permite alternar para a média por dia: o total de cada dia da semana dividido pelos dias desse tipo que já passaram no período, contando como zero os dias sem registro (dias futuros ficam de fora). O dia de cada registro é o dia local em que ele começou.
+
 ## [0.4.2] - 2026-10-16
 
 Ícones do app com fundo azul-petróleo e limpeza dos arquivos do logo antigo. Não há mudança de funcionalidade.

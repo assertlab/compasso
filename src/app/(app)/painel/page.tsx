@@ -7,14 +7,16 @@ import { formatDayLabel } from "@/lib/entry-groups";
 import { summarize } from "@/lib/report";
 import { buildCharts, formatPercent } from "@/lib/report-charts";
 import { buildDayMatrix } from "@/lib/report-days";
+import { buildWeekdayChart } from "@/lib/report-weekdays";
 import { toSearchParams } from "@/lib/schemas/report";
-import { formatHms } from "@/lib/time";
+import { formatHms, localDateString } from "@/lib/time";
 import { getTenant } from "@/server/get-tenant";
 import { loadCatalog } from "../views";
 import { ReportChartsSection } from "../relatorios/charts";
 import { loadReport } from "../relatorios/load-report";
 import { ReportFilters } from "../relatorios/report-filters";
 import { UnassignedNotice } from "../relatorios/unassigned-notice";
+import { WeekdayChartCard } from "./weekday-chart";
 
 export const metadata: Metadata = { title: "Painel" };
 
@@ -34,6 +36,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/painel">, "searchParams"
   const summary = summarize(report.rows, query.agrupar);
   const matrix = buildDayMatrix(report.rows, period, ctx.timezone, { includePeople: false });
   const charts = buildCharts(summary, matrix);
+  const weekdays = buildWeekdayChart(report.rows, period, ctx.timezone, localDateString(new Date(), ctx.timezone));
   const h = buildHighlights(report.rows, summary, ctx.timezone);
   // The same filters, opened in the full report.
   const reportHref = `/relatorios?${toSearchParams(query)}`;
@@ -84,7 +87,12 @@ async function Panel({ searchParams }: Pick<PageProps<"/painel">, "searchParams"
             />
           </div>
 
-          <ReportChartsSection charts={charts} activityTitle={`Principais ${summary.groupBy === "tarefa" ? "tarefas" : "descrições"}`} showPeople={isAdmin} />
+          <ReportChartsSection
+            charts={charts}
+            activityTitle={`Principais ${summary.groupBy === "tarefa" ? "tarefas" : "descrições"}`}
+            showPeople={isAdmin}
+            afterBars={<WeekdayChartCard chart={weekdays} />}
+          />
         </>
       )}
     </section>
