@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { WeekdayChart } from "@/lib/report-weekdays";
+import { formatHm } from "@/lib/report-days";
 import { formatHms } from "@/lib/time";
 import { BarPlot } from "../relatorios/charts";
 
@@ -45,7 +46,7 @@ export function WeekdayChartCard({ chart }: { chart: WeekdayChart }) {
         )}
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
-        <BarPlot bars={bars} max={Math.max(1, ...bars.map((b) => b.seconds))} />
+        <BarPlot bars={bars} max={Math.max(1, ...bars.map((b) => b.seconds))} valueLabel={formatHm} />
         {average && (
           <p className="text-xs text-muted-foreground">
             Média = horas de cada dia da semana ÷ quantos desses dias já passaram no período, contando os sem registro como zero.
