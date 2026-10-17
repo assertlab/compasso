@@ -100,4 +100,4 @@ A Vercel publica a branch `develop` (até a versão 1.0.0), então mergear um PR
 
 ## Licença
 
-[MIT](./LICENSE).
+Copyright © 2026 ASSERT Lab. Todos os direitos reservados ([LICENSE](./LICENSE)). As versões 0.5.0 e anteriores foram publicadas sob a licença MIT e continuam sob ela para quem as recebeu; a partir da versão seguinte o código é proprietário.
